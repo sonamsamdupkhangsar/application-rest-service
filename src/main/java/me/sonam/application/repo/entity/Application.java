@@ -1,0 +1,60 @@
+package me.sonam.application.repo.entity;
+
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.domain.Persistable;
+
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.util.UUID;
+
+public class Application implements Persistable<UUID> {
+
+    @Id
+    private UUID id;
+    private String name;
+    private String clientId;
+    private LocalDateTime created;
+
+    @Transient
+    private boolean isNew;
+
+    public Application(UUID id, String name, String clientId) {
+        if (id == null) {
+            this.id = UUID.randomUUID();
+            this.isNew = true;
+        }
+        else {
+            this.id = id;
+            this.isNew = false;
+        }
+        this.name = name;
+        this.clientId = clientId;
+        this.created = ZonedDateTime.now(ZoneOffset.UTC).toLocalDateTime();
+
+    }
+
+
+    public String getName() {
+        return name;
+    }
+
+    public String getClientId() {
+        return clientId;
+    }
+
+    public LocalDateTime getCreated() {
+        return created;
+    }
+
+    @Override
+    public UUID getId() {
+        return id;
+    }
+
+    @Override
+    public boolean isNew() {
+        return isNew;
+    }
+}

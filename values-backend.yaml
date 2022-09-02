@@ -44,11 +44,12 @@ istio:
 ingress:
   enabled: true
   ingressClass: nginx
-  #annotations:
-    #cert-manager.io/issuer: letsencrypt-nginx
-
+  annotations:
+    nginx.ingress.kubernetes.io/auth-url: http://jwt-rest-service-mychart.backend.svc.cluster.local:80/validate
+    # pass authId header returned from jwt-rest-service validation of jwt token
+    nginx.ingress.kubernetes.io/auth-response-headers: authId
   hosts:
-    - host: project-api.sonam.cloud
+    - host: application-rest-service.sonam.cloud
       paths:
         - path: /
           pathType: Prefix
@@ -62,12 +63,12 @@ resources: {}
   # choice for the user. This also increases chances charts run on environments with little
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
   # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-#   memory: 128Mi
+   limits:
+     cpu: 100m
+     memory: 128Mi
+   requests:
+     cpu: 100m
+   memory: 128Mi
 
 nodeSelector: {}
 
