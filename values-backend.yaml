@@ -7,8 +7,9 @@ replicaCount: 1
 image:
   pullPolicy: Always
 
+
 imagePullSecrets:
-  - name: regcred
+  - name: github-regcred
 nameOverride: ""
 fullnameOverride: ""
 
