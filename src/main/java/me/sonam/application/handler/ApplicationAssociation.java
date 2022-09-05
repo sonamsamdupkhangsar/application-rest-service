@@ -35,11 +35,27 @@ public class ApplicationAssociation implements ApplicationBehavior {
     }
 
     @Override
+    public Mono<Page<Application>> getOrganizationApplications(UUID organizationId, Pageable pageable) {
+        LOG.info("get organization applications");
+
+        return applicationRepository.findAllByOrganizationId(organizationId, pageable).collectList()
+                .zipWith(applicationRepository.countByOrganizationId(organizationId))
+                .map(objects -> new PageImpl<>(objects.getT1(), pageable, objects.getT2()));
+    }
+
+    @Override
     public Mono<String> createApplication(Mono<ApplicationBody> applicationBodyMono) {
         LOG.info("create application");
 
-        return applicationBodyMono.flatMap(applicationBody -> applicationRepository.save(new Application(null, applicationBody.getName(), applicationBody.getClientId())))
-                .map(application -> application.getId())
+        return applicationBodyMono.flatMap(applicationBody ->
+                applicationRepository.save(new Application(null, applicationBody.getName(),
+                        applicationBody.getClientId(), applicationBody.getCreatorUserId(), applicationBody.getOrganizationId())))
+                .map(application ->
+                        new ApplicationUser
+                        (null, application.getId(), application.getCreatorUserId(),
+                                ApplicationUser.RoleNamesEnum.admin.name()))
+                .flatMap(applicationUser -> applicationUserRepository.save(applicationUser))
+                .map(applicationUser -> applicationUser.getApplicationId())
                 .flatMap(uuid -> Mono.just(uuid.toString()));
     }
 
@@ -48,14 +64,18 @@ public class ApplicationAssociation implements ApplicationBehavior {
         LOG.info("update application");
 
         return applicationBodyMono.flatMap(applicationBody ->
-            applicationRepository.save(new Application(applicationBody.getId(), applicationBody.getName(), applicationBody.getClientId())))
+            applicationRepository.save(new Application(applicationBody.getId(), applicationBody.getName(),
+                    applicationBody.getClientId(), applicationBody.getCreatorUserId(), applicationBody.getOrganizationId())))
                 .flatMap(application -> Mono.just(application.getId().toString()));
     }
 
     @Override
     public Mono<String> deleteApplication(UUID applicationId) {
         LOG.info("delete application");
-        return applicationRepository.deleteById(applicationId).thenReturn("application deleted");
+
+        LOG.info("delete application users and then delete application");
+        return applicationUserRepository.deleteByApplicationId(applicationId).then(
+            applicationRepository.deleteById(applicationId).thenReturn("application deleted"));
     }
 
     @Override
@@ -92,11 +112,19 @@ public class ApplicationAssociation implements ApplicationBehavior {
                     }
                 }
                 else if (userUpdate.getUpdate().equals(UserUpdate.UpdateAction.update)) {
-                    applicationUserRepository.findByApplicationIdAndUserId(
+                    applicationUserRepository.existsByApplicationIdAndUserId(
                             applicationUserBody.getApplicationId(), userUpdate.getUserId())
-                            .switchIfEmpty(Mono.just(
-                                    new ApplicationUser(null, applicationUserBody.getApplicationId(),
-                                            userUpdate.getUserId(), userUpdate.getRole())))
+                            .map(aBoolean -> {
+                                if (aBoolean) {
+                                    return new ApplicationUser(applicationUserBody.getId()
+                                            , applicationUserBody.getApplicationId(), userUpdate.getUserId()
+                                            , userUpdate.getRole());
+                                } else {
+                                    return new ApplicationUser(null
+                                            , applicationUserBody.getApplicationId(), userUpdate.getUserId()
+                                            , userUpdate.getRole());
+                                }
+                            })
                             .flatMap(applicationUser -> applicationUserRepository.save(applicationUser))
                             .subscribe(organizationUser -> LOG.info("updated applicationUser"));
                 }

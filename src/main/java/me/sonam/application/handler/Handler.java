@@ -33,6 +33,20 @@ public class Handler {
                 });
     }
 
+    public Mono<ServerResponse> getOrganizationApplications(ServerRequest serverRequest) {
+        LOG.info("get organization applications");
+        Pageable pageable = Util.getPageable(serverRequest);
+
+        return applicationBehavior.getOrganizationApplications(
+                UUID.fromString(serverRequest.pathVariable("organizationId")), pageable)
+                .flatMap(s -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(s))
+                .onErrorResume(throwable -> {
+                    LOG.error("get organization applications call failed", throwable);
+                    return ServerResponse.badRequest().contentType(MediaType.APPLICATION_JSON)
+                            .bodyValue(throwable.getMessage());
+                });
+    }
+
     public Mono<ServerResponse> createApplication(ServerRequest serverRequest) {
         LOG.info("create application");
 

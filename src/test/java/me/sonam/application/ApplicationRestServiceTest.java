@@ -60,8 +60,10 @@ public class ApplicationRestServiceTest {
     public void createApplication() {
         LOG.info("create application");
         UUID clientId = UUID.randomUUID();
+        UUID creatorUserId = UUID.randomUUID();
+        UUID organizationId = UUID.randomUUID();
 
-        ApplicationBody applicationBody = new ApplicationBody(null, "Baggy Pants Company",clientId.toString());
+        ApplicationBody applicationBody = new ApplicationBody(null, "Baggy Pants Company",clientId.toString(), creatorUserId, organizationId);
         EntityExchangeResult<String> result = webTestClient.post().uri("/applications").bodyValue(applicationBody)
                 .exchange().expectStatus().isCreated().expectBody(String.class).returnResult();
 
@@ -80,7 +82,7 @@ public class ApplicationRestServiceTest {
 
         LOG.info("page result contains: {}", result);
 
-        applicationBody = new ApplicationBody(id, "New Name", clientId.toString());
+        applicationBody = new ApplicationBody(id, "New Name", clientId.toString(), creatorUserId, organizationId);
         result = webTestClient.put().uri("/applications").bodyValue(applicationBody)
                 .exchange().expectStatus().isOk().expectBody(String.class).returnResult();
 
@@ -90,12 +92,7 @@ public class ApplicationRestServiceTest {
         applicationRepository.findById(id)
                 .subscribe(application -> LOG.info("found application with id: {}", application));
 
-        result = webTestClient.delete().uri("/applications/"+id).exchange().expectStatus().isOk().expectBody(String.class)
-                .returnResult();
-        assertThat(result.getResponseBody()).isEqualTo("application deleted");
 
-        StepVerifier.create(applicationRepository.existsById(id)).expectNext(false).expectComplete();
-        applicationRepository.existsById(id).subscribe(aBoolean -> LOG.info("should be false after deletion: {}",aBoolean));
 
         //UID id, UUID applicationId, List< UserUpdate > userUpdates
         UserUpdate userUpdates1 = new UserUpdate(UUID.randomUUID(), ApplicationUser.RoleNamesEnum.admin.name(), UserUpdate.UpdateAction.add.name());
@@ -130,6 +127,16 @@ public class ApplicationRestServiceTest {
                 .exchange().expectStatus().isOk().expectBody(String.class).returnResult();
         LOG.info("result: {}", result.getResponseBody());
 
+        result = webTestClient.get().uri("applications/"+organizationId).exchange().expectStatus().isOk()
+                .expectBody(String.class).returnResult();
+        LOG.info("got page results for applications by organizations: {}", result);
+
+        result = webTestClient.delete().uri("/applications/"+id).exchange().expectStatus().isOk().expectBody(String.class)
+                .returnResult();
+        assertThat(result.getResponseBody()).isEqualTo("application deleted");
+
+        StepVerifier.create(applicationRepository.existsById(id)).expectNext(false).expectComplete();
+        applicationRepository.existsById(id).subscribe(aBoolean -> LOG.info("should be false after deletion: {}",aBoolean));
     }
 
 

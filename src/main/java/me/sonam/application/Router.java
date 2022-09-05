@@ -50,6 +50,8 @@ public class Router {
                         .and(accept(MediaType.APPLICATION_JSON)), handler::deleteApplication)
                 .andRoute(GET("/applications")
                         .and(accept(MediaType.APPLICATION_JSON)), handler::getApplications)
+                .andRoute(GET("/applications/{organizationId}")
+                        .and(accept(MediaType.APPLICATION_JSON)), handler::getOrganizationApplications)
                 .andRoute(PUT("/applications/users")
                         .and(accept(MediaType.APPLICATION_JSON)), handler::updateApplicationUsers)
                 .andRoute(GET("/applications/{applicationId}/users")

@@ -16,11 +16,13 @@ public class Application implements Persistable<UUID> {
     private String name;
     private String clientId;
     private LocalDateTime created;
+    private UUID creatorUserId;
+    private UUID organizationId;
 
     @Transient
     private boolean isNew;
 
-    public Application(UUID id, String name, String clientId) {
+    public Application(UUID id, String name, String clientId, UUID creatorUserId, UUID organizationId) {
         if (id == null) {
             this.id = UUID.randomUUID();
             this.isNew = true;
@@ -32,7 +34,8 @@ public class Application implements Persistable<UUID> {
         this.name = name;
         this.clientId = clientId;
         this.created = ZonedDateTime.now(ZoneOffset.UTC).toLocalDateTime();
-
+        this.creatorUserId = creatorUserId;
+        this.organizationId = organizationId;
     }
 
 
@@ -48,6 +51,10 @@ public class Application implements Persistable<UUID> {
         return created;
     }
 
+    public UUID getCreatorUserId() {
+        return this.creatorUserId;
+    }
+
     @Override
     public UUID getId() {
         return id;
@@ -56,5 +63,22 @@ public class Application implements Persistable<UUID> {
     @Override
     public boolean isNew() {
         return isNew;
+    }
+
+    public UUID getOrganizationId() {
+        return this.organizationId;
+    }
+
+    @Override
+    public String toString() {
+        return "Application{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", clientId='" + clientId + '\'' +
+                ", created=" + created +
+                ", creatorUserId=" + creatorUserId +
+                ", isNew=" + isNew +
+                ", organizationId="+organizationId +
+                '}';
     }
 }
