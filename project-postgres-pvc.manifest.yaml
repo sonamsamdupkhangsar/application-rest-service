@@ -1,7 +1,7 @@
 apiVersion: "acid.zalan.do/v1"
 kind: postgresql
 metadata:
-  name: project-minimal-cluster
+  name: application-minimal-cluster
   namespace: backend
 spec:
   teamId: "project"

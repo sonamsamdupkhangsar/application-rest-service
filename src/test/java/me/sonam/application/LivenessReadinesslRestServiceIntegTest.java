@@ -1,4 +1,4 @@
-package me.sonam.account;
+package me.sonam.application;
 
 import lombok.extern.java.Log;
 import org.junit.Test;
@@ -17,7 +17,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 @AutoConfigureWebTestClient
 @Log
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = {Application.class})
+@SpringBootTest(classes = {SpringApplication.class})
 public class LivenessReadinesslRestServiceIntegTest {
   private static final Logger LOG = LoggerFactory.getLogger(LivenessReadinesslRestServiceIntegTest.class);
 

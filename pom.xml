@@ -11,11 +11,10 @@
     </parent>
 
     <groupId>me.sonam</groupId>
-    <artifactId>spring-flux-r2dbc-pgsql-template</artifactId>
+    <artifactId>application-rest-service</artifactId>
     <version>1.0-SNAPSHOT</version>
-    <name>spring-flux-r2dbc-pgsql-template</name>
-    <description>A template
-    </description>
+    <name>application-rest-service</name>
+    <description>This is for registering a application</description>
 
     <dependencies>
         <dependency>
@@ -75,6 +74,30 @@
             <artifactId>springdoc-openapi-webflux-ui</artifactId>
             <version>1.4.3</version>
         </dependency>
+        <dependency>
+            <groupId>au.com.dius</groupId>
+            <artifactId>pact-jvm-consumer-junit5</artifactId>
+            <version>4.0.10</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>au.com.dius</groupId>
+            <artifactId>pact-jvm-provider-junit5</artifactId>
+            <version>4.0.10</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>4.0.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>mockwebserver</artifactId>
+            <version>4.0.1</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -83,6 +106,49 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>au.com.dius</groupId>
+                <artifactId>pact-jvm-provider-maven</artifactId>
+                <version>4.0.0</version>
+                <configuration>
+                    <pactDirectory>target/pacts</pactDirectory>
+                    <pactBrokerUrl>${pactbrokerurl}</pactBrokerUrl>
+                    <pactBrokerUsername>${pactbrokerusername}</pactBrokerUsername>
+                    <pactBrokerPassword>${pactbrokerpassword}</pactBrokerPassword>
+                    <projectVersion>v1</projectVersion>
+                    <serviceProviders>
+                        <serviceProvider>
+                            <name>jwt-rest-service</name>
+                            <pactBrokerUrl>${pactbrokerurl}</pactBrokerUrl>
+                        </serviceProvider>
+                    </serviceProviders>
+                    <tags>
+                        <tag>prod</tag>
+                    </tags>
+                    <configuration>
+                        <pact.verifier.publishResults>true</pact.verifier.publishResults>
+                    </configuration>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.8</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>generate-code-coverage-report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
@@ -90,7 +156,7 @@
         <repository>
             <id>github</id>
             <name>GitHub OWNER Apache Maven Packages</name>
-            <url>https://maven.pkg.github.com/sonamsamdupkhangsar/spring-flux-r2dbc-pgsql-template</url>
+            <url>https://maven.pkg.github.com/sonamsamdupkhangsar/application-rest-service</url>
         </repository>
     </distributionManagement>
 </project>
