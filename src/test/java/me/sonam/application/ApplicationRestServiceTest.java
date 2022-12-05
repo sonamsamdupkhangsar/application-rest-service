@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import me.sonam.application.handler.ApplicationBody;
 import me.sonam.application.handler.ApplicationUserBody;
+import me.sonam.application.handler.model.RoleGroupNames;
 import me.sonam.application.repo.ApplicationRepository;
 import me.sonam.application.repo.ApplicationUserRepository;
 import me.sonam.application.repo.entity.ApplicationUser;
@@ -76,8 +77,10 @@ public class ApplicationRestServiceTest {
         EntityExchangeResult<String> result = webTestClient.post().uri("/applications").bodyValue(applicationBody)
                 .exchange().expectStatus().isCreated().expectBody(String.class).returnResult();
 
-        LOG.info("get applications by id and all users in it");
-        EntityExchangeResult<RestPage> createdResult = webTestClient.get().uri("/applications/"+result.getResponseBody()+"/users")
+        UUID applicationId = UUID.fromString(result.getResponseBody().toString());
+
+        LOG.info("get applications by id {} and all users in it", applicationId);
+        EntityExchangeResult<RestPage> createdResult = webTestClient.get().uri("/applications/"+applicationId+"/users")
                 .exchange().expectStatus().isOk().expectBody(RestPage.class).returnResult();
 
         LOG.info("pageResult pageable {}", createdResult.getResponseBody().getPageable());
@@ -91,15 +94,16 @@ public class ApplicationRestServiceTest {
 
         createdResult.getResponseBody().getContent().forEach(o -> LOG.info("object: {}", o));
 
+        LOG.info("trying to send the same payload leads to an error because clientId has already been used");
         webTestClient.post().uri("/applications").bodyValue(applicationBody)
-                .exchange().expectStatus().isCreated().expectBody(String.class).
+                .exchange().expectStatus().is4xxClientError().expectBody(String.class).
                 consumeWith(stringEntityExchangeResult -> LOG.info("response: {}", stringEntityExchangeResult.getResponseBody()));
 
         LOG.info("result: {}", result.getResponseBody());
         assertThat(result.getResponseBody()).isNotEmpty();
 
         LOG.info("second call with the same applicationBody should produce the results with ApplicationUser");
-        createdResult = webTestClient.get().uri("/applications/"+result.getResponseBody()+"/users")
+        createdResult = webTestClient.get().uri("/applications/"+applicationId+"/users")
                 .exchange().expectStatus().isOk().expectBody(RestPage.class).returnResult();
 
         LOG.info("pageResult pageable {}", createdResult.getResponseBody().getPageable());
@@ -110,8 +114,6 @@ public class ApplicationRestServiceTest {
         LOG.info("obj.class {}, obj: {}", obj.getClass(), obj);
         linkedHashMap = (LinkedHashMap) obj;
         assertThat(linkedHashMap.get("userRole")).isEqualTo("user");
-
-        UUID applicationId = UUID.fromString(result.getResponseBody());
 
         applicationRepository.findById(applicationId)
                 .subscribe(application -> LOG.info("found application with id: {}", application));
@@ -258,6 +260,28 @@ public class ApplicationRestServiceTest {
         result = webTestClient.get().uri("applications/"+organizationId).exchange().expectStatus().isOk()
                 .expectBody(String.class).returnResult();
         LOG.info("got page results for applications by organizations: {}", result);
+
+
+
+        EntityExchangeResult<RoleGroupNames> clientRoleGroups = webTestClient.get().uri("/applications/clients/"+clientId+"/users/"+userId1)
+                .exchange().expectStatus().isOk().expectBody(RoleGroupNames.class).returnResult();
+
+        assertThat(clientRoleGroups.getResponseBody().getGroupNames().length).isEqualTo(2);
+        LOG.info("groupNames: {}", clientRoleGroups.getResponseBody().getGroupNames());
+        LOG.info("groupNames.length: {}", clientRoleGroups.getResponseBody().getGroupNames().length);
+        LOG.info("groupNames: {}", clientRoleGroups.getResponseBody().getGroupNames());
+
+        assertThat(clientRoleGroups.getResponseBody().getGroupNames()).contains("admin1touser", "employee");
+        assertThat(clientRoleGroups.getResponseBody().getUserRole()).isEqualTo("user");
+
+        clientRoleGroups = webTestClient.get().uri("/applications/clients/"+clientId+"/users/"+userId2)
+                .exchange().expectStatus().isOk().expectBody(RoleGroupNames.class).returnResult();
+
+        assertThat(clientRoleGroups.getResponseBody().getGroupNames()).isNull();
+        assertThat(clientRoleGroups.getResponseBody().getUserRole()).isEqualTo("user");
+
+        webTestClient.get().uri("/applications/clients/"+clientId+"/users/"+userId3)
+                .exchange().expectStatus().is4xxClientError();
 
         result = webTestClient.delete().uri("/applications/"+applicationId).exchange().expectStatus().isOk().expectBody(String.class)
                 .returnResult();

@@ -50,15 +50,17 @@ public class ApplicationAssociation implements ApplicationBehavior {
         LOG.info("create application");
 
         return applicationBodyMono.flatMap(applicationBody ->
-                   applicationRepository.save(new Application(null, applicationBody.getName(),
-                            applicationBody.getClientId(), applicationBody.getCreatorUserId(),
-                            applicationBody.getOrganizationId()))
-                           .zipWith(Mono.just(applicationBody))
-                )
+                applicationRepository.existsByClientId(UUID.fromString(applicationBody.getClientId()))
+                .filter(aBoolean -> !aBoolean)
+                .switchIfEmpty(Mono.error(new ApplicationException("application with clientId already exists")))
+                .map(aBoolean -> new Application(null, applicationBody.getName(),
+                        applicationBody.getClientId(), applicationBody.getCreatorUserId(),
+                        applicationBody.getOrganizationId()))
+                        .flatMap(application -> applicationRepository.save(application).zipWith(Mono.just(applicationBody))))
                 .map(objects ->
                         new ApplicationUser
-                        (null, objects.getT1().getId(), objects.getT1().getCreatorUserId(), objects.getT2().getUserRole(),
-                                objects.getT2().getGroupNames()))
+                                (null, objects.getT1().getId(), objects.getT1().getCreatorUserId(), objects.getT2().getUserRole(),
+                                        objects.getT2().getGroupNames()))
                 .flatMap(applicationUser -> applicationUserRepository.save(applicationUser))
                 .map(applicationUser -> applicationUser.getApplicationId())
                 .flatMap(uuid -> Mono.just(uuid.toString()));
@@ -153,10 +155,13 @@ public class ApplicationAssociation implements ApplicationBehavior {
 
     @Override
     public Mono<RoleGroupNames> getClientRoleGroupNames(UUID clientId, UUID userId) {
-        LOG.info("get application role given a clientId and userId");
+        LOG.info("get application role given a clientId {} and userId {}", clientId, userId);
 
         return applicationRepository.findByClientId(clientId)
                 .switchIfEmpty(Mono.error(new ApplicationException("clientId not found")))
+
+                .doOnNext(application -> LOG.info("applicaiton.id: {}", application.getId()))
+
                 .flatMap(application -> applicationUserRepository.findByApplicationIdAndUserId(application.getId(), userId))
                 .switchIfEmpty(Mono.error(new ApplicationException("no applicationUser found for applicationId and userId")))
                 .map(applicationUser ->
