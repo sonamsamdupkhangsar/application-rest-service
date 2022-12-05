@@ -1,5 +1,6 @@
 package me.sonam.application.handler;
 
+import me.sonam.application.handler.model.RoleGroupNames;
 import me.sonam.application.repo.ApplicationRepository;
 import me.sonam.application.repo.ApplicationUserRepository;
 import me.sonam.application.repo.entity.Application;
@@ -11,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.UUID;
@@ -48,20 +50,28 @@ public class ApplicationAssociation implements ApplicationBehavior {
         LOG.info("create application");
 
         return applicationBodyMono.flatMap(applicationBody ->
-                applicationRepository.save(new Application(null, applicationBody.getName(),
-                        applicationBody.getClientId(), applicationBody.getCreatorUserId(), applicationBody.getOrganizationId())))
-                .map(application ->
+                   applicationRepository.save(new Application(null, applicationBody.getName(),
+                            applicationBody.getClientId(), applicationBody.getCreatorUserId(),
+                            applicationBody.getOrganizationId()))
+                           .zipWith(Mono.just(applicationBody))
+                )
+                .map(objects ->
                         new ApplicationUser
-                        (null, application.getId(), application.getCreatorUserId(),
-                                ApplicationUser.RoleNamesEnum.admin.name()))
+                        (null, objects.getT1().getId(), objects.getT1().getCreatorUserId(), objects.getT2().getUserRole(),
+                                objects.getT2().getGroupNames()))
                 .flatMap(applicationUser -> applicationUserRepository.save(applicationUser))
                 .map(applicationUser -> applicationUser.getApplicationId())
                 .flatMap(uuid -> Mono.just(uuid.toString()));
     }
 
+    /**
+     * this will only update the application itself, not the applicationusers
+     * @param applicationBodyMono
+     * @return
+     */
     @Override
     public Mono<String> updateApplication(Mono<ApplicationBody> applicationBodyMono) {
-        LOG.info("update application");
+        LOG.info("update application only, not the users");
 
         return applicationBodyMono.flatMap(applicationBody ->
             applicationRepository.save(new Application(applicationBody.getId(), applicationBody.getName(),
@@ -79,61 +89,57 @@ public class ApplicationAssociation implements ApplicationBehavior {
     }
 
     @Override
-    public Mono<String> updateApplicationUsers(Mono<ApplicationUserBody> applicationUserBodyMono) {
+    public Mono<String> updateApplicationUsers(Flux<ApplicationUserBody> applicationUserBodyFlux) {
         LOG.info("updated users in organization");
 
-        return applicationUserBodyMono.doOnNext(applicationUserBody -> {
+        return applicationUserBodyFlux.doOnNext(applicationUserBody -> {
             LOG.info("save application user updates");
-            applicationUserBody.getUserUpdateList().forEach(userUpdate -> {
-                if (userUpdate.getUpdate().equals(UserUpdate.UpdateAction.add)) {
-                    applicationUserRepository.existsByApplicationIdAndUserId(
-                            applicationUserBody.getApplicationId(), userUpdate.getUserId())
-                            .doOnNext(aBoolean -> LOG.info("exists by orgIdAndUserId already?: {}", aBoolean))
-                            .filter(aBoolean -> !aBoolean)
-                            .map(aBoolean -> new ApplicationUser
-                                    (null, applicationUserBody.getApplicationId(), userUpdate.getUserId(),
-                                            userUpdate.getRole()))
-                            .flatMap(applicationUser -> applicationUserRepository.save(applicationUser))
-                            .subscribe(organizationUser -> LOG.info("saved applicationUser"));
 
+            if (applicationUserBody.getUpdateAction().equals(ApplicationUserBody.UpdateAction.add)) {
+                applicationUserRepository.existsByApplicationIdAndUserId(
+                        applicationUserBody.getApplicationId(), applicationUserBody.getUserId())
+                        .doOnNext(aBoolean -> LOG.info("exists by orgIdAndUserId already?: {}", aBoolean))
+                        .filter(aBoolean -> !aBoolean)
+                        .map(aBoolean -> new ApplicationUser
+                                (null, applicationUserBody.getApplicationId(), applicationUserBody.getUserId(),
+                                        applicationUserBody.getUserRole(), applicationUserBody.getGroupNames()))
+                        .flatMap(applicationUser -> applicationUserRepository.save(applicationUser))
+                        .subscribe(organizationUser -> LOG.info("saved applicationUser"));
 
-                } else if (userUpdate.getUpdate().equals(UserUpdate.UpdateAction.delete)) {
-                    if (applicationUserBody.getId() != null) {
-                        applicationUserRepository.existsById(applicationUserBody.getId())
-                                .filter(aBoolean -> aBoolean)
-                                .map(aBoolean -> applicationUserRepository.deleteById(applicationUserBody.getId()))
-                                .subscribe(organizationUser -> LOG.info("deleted applicationUser"));
-                    }
-                    else {
-                        LOG.info("deleting using userId and appId");
-                        applicationUserRepository.deleteByApplicationIdAndUserId(
-                                applicationUserBody.getApplicationId(), userUpdate.getUserId())
-                                .subscribe(integer -> LOG.info("delted by applicationId and userId"));
-                    }
-                }
-                else if (userUpdate.getUpdate().equals(UserUpdate.UpdateAction.update)) {
-                    applicationUserRepository.existsByApplicationIdAndUserId(
-                            applicationUserBody.getApplicationId(), userUpdate.getUserId())
-                            .map(aBoolean -> {
-                                if (aBoolean) {
-                                    return new ApplicationUser(applicationUserBody.getId()
-                                            , applicationUserBody.getApplicationId(), userUpdate.getUserId()
-                                            , userUpdate.getRole());
-                                } else {
-                                    return new ApplicationUser(null
-                                            , applicationUserBody.getApplicationId(), userUpdate.getUserId()
-                                            , userUpdate.getRole());
-                                }
-                            })
-                            .flatMap(applicationUser -> applicationUserRepository.save(applicationUser))
-                            .subscribe(organizationUser -> LOG.info("updated applicationUser"));
+            } else if (applicationUserBody.getUpdateAction().equals(ApplicationUserBody.UpdateAction.delete)) {
+                if (applicationUserBody.getId() != null) {
+                    applicationUserRepository.existsById(applicationUserBody.getId())
+                            .filter(aBoolean -> aBoolean)
+                            .map(aBoolean -> applicationUserRepository.deleteById(applicationUserBody.getId()))
+                            .subscribe(organizationUser -> LOG.info("deleted applicationUser"));
                 }
                 else {
-                    throw new ApplicationException("UserUpdate action invalid: " + userUpdate.getUpdate().name());
+                    LOG.info("deleting using userId and appId");
+                    applicationUserRepository.deleteByApplicationIdAndUserId(
+                            applicationUserBody.getApplicationId(), applicationUserBody.getUserId())
+                            .subscribe(rows -> LOG.info("deleted by applicationId and userId: {}", rows));
                 }
-            });
-        }).thenReturn("applicationUser update done");
+            }
+            else if (applicationUserBody.getUpdateAction().equals(ApplicationUserBody.UpdateAction.update)) {
+                //in update the applicationUser with appId and userId must existacc
+                applicationUserRepository.findByApplicationIdAndUserId(
+                        applicationUserBody.getApplicationId(), applicationUserBody.getUserId())
+                        .map(applicationUser ->  new ApplicationUser(applicationUser.getId()
+                                , applicationUser.getApplicationId(), applicationUser.getUserId()
+                                , applicationUserBody.getUserRole(), applicationUserBody.getGroupNames()))
+                        .doOnNext(applicationUser -> {
+                            applicationUserRepository.countByApplicationId(applicationUser.getApplicationId()).subscribe(aLong -> LOG.info("count of applicationUser: {}", aLong));
+
+                        })
+                        .flatMap(applicationUser -> applicationUserRepository.save(applicationUser))
+                        .subscribe(organizationUser -> LOG.info("updated applicationUser"));
+            }
+            else {
+                throw new ApplicationException("UserUpdate action invalid: " + applicationUserBody.getUpdateAction().name());
+            }
+        }).then(Mono.just("applicationUser update done"));
     }
+
 
     @Override
     public Mono<Page<ApplicationUser>> getApplicationUsers(UUID applicationId, Pageable pageable) {
@@ -143,5 +149,18 @@ public class ApplicationAssociation implements ApplicationBehavior {
                 .collectList()
                 .zipWith(applicationUserRepository.countByApplicationId(applicationId))
                 .map(objects -> new PageImpl<>(objects.getT1(), pageable, objects.getT2()));
+    }
+
+    @Override
+    public Mono<RoleGroupNames> getClientRoleGroupNames(UUID clientId, UUID userId) {
+        LOG.info("get application role given a clientId and userId");
+
+        return applicationRepository.findByClientId(clientId)
+                .switchIfEmpty(Mono.error(new ApplicationException("clientId not found")))
+                .flatMap(application -> applicationUserRepository.findByApplicationIdAndUserId(application.getId(), userId))
+                .switchIfEmpty(Mono.error(new ApplicationException("no applicationUser found for applicationId and userId")))
+                .map(applicationUser ->
+                   new RoleGroupNames(applicationUser.getUserRole(), applicationUser.getGroupNames()));
+
     }
 }

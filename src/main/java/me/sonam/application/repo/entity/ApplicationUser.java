@@ -15,8 +15,9 @@ public class ApplicationUser implements Persistable<UUID> {
     private UUID applicationId;
     private UUID userId;
     private String userRole;
+    private String groupNames;
 
-    public ApplicationUser(UUID id, UUID applicationId, UUID userId, String userRole) {
+    public ApplicationUser(UUID id, UUID applicationId, UUID userId, String userRole, String groupNames) {
         if (id == null) {
             this.id = UUID.randomUUID();
             this.isNew = true;
@@ -28,6 +29,7 @@ public class ApplicationUser implements Persistable<UUID> {
         this.applicationId = applicationId;
         this.userId = userId;
         this.userRole = userRole;
+        this.groupNames = groupNames;
     }
 
     public UUID getApplicationId() {
@@ -40,6 +42,10 @@ public class ApplicationUser implements Persistable<UUID> {
 
     public String getUserRole() {
         return userRole;
+    }
+
+    public java.lang.String getGroupNames() {
+        return groupNames;
     }
 
     @Transient

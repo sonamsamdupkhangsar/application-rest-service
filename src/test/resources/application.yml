@@ -1,6 +1,6 @@
 logging:
   level:
-    root: error
+    root: info
     me:
       sonam: debug
 info:

@@ -55,6 +55,8 @@ public class Router {
                 .andRoute(PUT("/applications/users")
                         .and(accept(MediaType.APPLICATION_JSON)), handler::updateApplicationUsers)
                 .andRoute(GET("/applications/{applicationId}/users")
-                        .and(accept(MediaType.APPLICATION_JSON)), handler::getApplicationUsers);
+                        .and(accept(MediaType.APPLICATION_JSON)), handler::getApplicationUsers)
+                .andRoute(GET("/applications/clients/{clientId}/users/{userId}")
+                        .and(accept(MediaType.APPLICATION_JSON)), handler::getClientRoleGroupNames);
     }
 }

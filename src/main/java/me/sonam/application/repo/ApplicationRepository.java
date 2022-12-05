@@ -13,4 +13,5 @@ public interface ApplicationRepository extends ReactiveCrudRepository<Applicatio
     Flux<Application> findAllBy(Pageable pageable);
     Flux<Application> findAllByOrganizationId(UUID orgainzationId, Pageable pageable);
     Mono<Integer> countByOrganizationId(UUID organizationId);
+    Mono<Application> findByClientId(UUID clientId);
 }

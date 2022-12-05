@@ -4,14 +4,25 @@ import java.util.List;
 import java.util.UUID;
 
 public class ApplicationUserBody {
+    public enum UpdateAction {
+        add, update, delete
+    }
+
     private UUID id;
     private UUID applicationId;
-    private List<UserUpdate> userUpdateList;
 
-    public ApplicationUserBody(UUID id, UUID applicationId, List<UserUpdate> userUpdateList) {
+    private UUID userId;
+    private UpdateAction updateAction;
+    private String userRole;
+    private String groupNames;
+
+    public ApplicationUserBody(UUID id, UUID applicationId, UUID userId, UpdateAction updateAction, String userRole, String groupNames) {
         this.id = id;
         this.applicationId = applicationId;
-        this.userUpdateList = userUpdateList;
+        this.userId = userId;
+        this.updateAction = updateAction;
+        this.userRole = userRole;
+        this.groupNames = groupNames;
     }
 
     public UUID getId() {
@@ -22,7 +33,31 @@ public class ApplicationUserBody {
         return this.applicationId;
     }
 
-    public List<UserUpdate> getUserUpdateList() {
-        return List.copyOf(userUpdateList);
+    public UUID getUserId() {
+        return userId;
+    }
+
+    public UpdateAction getUpdateAction() {
+        return updateAction;
+    }
+
+    public String getUserRole() {
+        return userRole;
+    }
+
+    public String getGroupNames() {
+        return groupNames;
+    }
+
+    @Override
+    public String toString() {
+        return "ApplicationUserBody{" +
+                "id=" + id +
+                ", applicationId=" + applicationId +
+                ", userId=" + userId +
+                ", updateAction=" + updateAction +
+                ", userRole='" + userRole + '\'' +
+                ", groupNames='" + groupNames + '\'' +
+                '}';
     }
 }
