@@ -43,7 +43,7 @@ istio:
   enabled: false
 
 ingress:
-  enabled: true
+  enabled: false
   ingressClass: nginx
   annotations:
     nginx.ingress.kubernetes.io/auth-url: http://jwt-rest-service-mychart.backend.svc.cluster.local:80/validate
@@ -79,7 +79,10 @@ affinity: {}
 
 postgres:
   port: "5432"
-# dbname and secret file containing username/password are passed via Helm chart installation see deploy.yml file
+  service: application-minimal-cluster
+  secretfile: sonam.application-minimal-cluster.credentials.postgresql.acid.zalan.do
+  dbname: application
+
 
 envs:
 

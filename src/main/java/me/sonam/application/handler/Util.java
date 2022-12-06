@@ -9,7 +9,7 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 public class Util {
     private static final Logger LOG = LoggerFactory.getLogger(Util.class);
 
-    public static Pageable getPageable(ServerRequest serverRequest) {
+    public static PageRequest getPageable(ServerRequest serverRequest) {
         int page = 0;
         int size = 100;
 

@@ -3,6 +3,7 @@ package me.sonam.application.handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -62,6 +63,7 @@ public class Handler {
     public Mono<ServerResponse> updateApplication(ServerRequest serverRequest) {
         LOG.info("update application");
 
+
         return applicationBehavior.updateApplication(serverRequest.bodyToMono(ApplicationBody.class))
                 .flatMap(s -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(s))
                 .onErrorResume(throwable -> {
@@ -86,7 +88,7 @@ public class Handler {
     public Mono<ServerResponse> updateApplicationUsers(ServerRequest serverRequest) {
         LOG.info("add user");
 
-        return applicationBehavior.updateApplicationUsers(serverRequest.bodyToMono(ApplicationUserBody.class))
+        return applicationBehavior.updateApplicationUsers(serverRequest.bodyToFlux(ApplicationUserBody.class))
                 .flatMap(s -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(s))
                 .onErrorResume(throwable -> {
                     LOG.error("create failed", throwable);
@@ -109,6 +111,17 @@ public class Handler {
                 });
     }
 
+    public Mono<ServerResponse> getClientRoleGroupNames(ServerRequest serverRequest) {
+        LOG.info("get role based on client userId");
 
+        return applicationBehavior.getClientRoleGroupNames(UUID.fromString(serverRequest.pathVariable("clientId")),
+                UUID.fromString(serverRequest.pathVariable("userId")))
+                .flatMap(s -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(s))
+                .onErrorResume(throwable -> {
+                    LOG.error("get role method failed", throwable);
+                    return ServerResponse.badRequest().contentType(MediaType.APPLICATION_JSON)
+                            .bodyValue(throwable.getMessage());
+                });
+    }
 
 }
