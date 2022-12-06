@@ -28,3 +28,5 @@ POSTGRES_USERNAME: dusername
 POSTGRES_DBNAME: dbname
 POSTGRES_SERVICE: dservice
 POSTGRES_PASSWORD: dpassword
+
+permitPaths: /api/health/

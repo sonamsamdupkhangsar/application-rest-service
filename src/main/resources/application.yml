@@ -24,3 +24,5 @@ spring:
     password: ${POSTGRES_PASSWORD}
     properties:
       sslMode: REQUIRE
+
+permitPaths: /api/health/*

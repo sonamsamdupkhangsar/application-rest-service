@@ -1,4 +1,6 @@
-# project-rest-service
+# application-rest-service
+This projects stores application information and the users associated with the application.  This `application-rest-service` contains the application for a client.  It can save application with association to clientId and organizationId.  It can also save user role with groupNames.
+ This service requires a jwt-token.  Once the user is authenticated the user can setup application with user access and groupNames.
 
 This is a template project for starting a Spring Webflux with R2DBC for Posgresql Maven based project.
 
