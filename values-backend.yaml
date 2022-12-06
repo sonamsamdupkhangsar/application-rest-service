@@ -79,7 +79,7 @@ affinity: {}
 
 postgres:
   port: "5432"
-  service: applicaiton-minimal-cluster
+  service: application-minimal-cluster
   secretfile: sonam.application-minimal-cluster.credentials.postgresql.acid.zalan.do
   dbname: application
 
