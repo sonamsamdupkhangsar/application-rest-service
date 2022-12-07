@@ -46,10 +46,8 @@ import static org.mockito.Mockito.when;
 
 @AutoConfigureWebTestClient
 @EnableAutoConfiguration
-@ExtendWith(SpringExtension.class)
-@SpringBootTest( webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest( classes = SpringApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ExtendWith(MockitoExtension.class)
-@ComponentScan(basePackages = {"me.sonam.security"})
 public class ApplicationRestServiceTest {
     private static final Logger LOG = LoggerFactory.getLogger(ApplicationRestServiceTest.class);
 

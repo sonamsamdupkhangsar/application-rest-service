@@ -26,3 +26,4 @@ spring:
       sslMode: REQUIRE
 
 permitPaths: /api/health/*
+jwt-rest-service-public-key-id: http://localhost:{port}/jwt-rest-service/publickeys/{keyId}
