@@ -20,27 +20,33 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpHeaders;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.reactive.server.EntityExchangeResult;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
-
+@AutoConfigureWebTestClient
 @EnableAutoConfiguration
-@ExtendWith(SpringExtension.class)
-@SpringBootTest( webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest( classes = SpringApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ExtendWith(MockitoExtension.class)
 public class ApplicationRestServiceTest {
     private static final Logger LOG = LoggerFactory.getLogger(ApplicationRestServiceTest.class);
@@ -53,6 +59,9 @@ public class ApplicationRestServiceTest {
 
     @Autowired
     private WebTestClient webTestClient;
+
+    @MockBean
+    ReactiveJwtDecoder jwtDecoder;
 
     @Before
     public void setUp() {
@@ -68,19 +77,24 @@ public class ApplicationRestServiceTest {
 
     @Test
     public void createApplication() {
+        final String authenticationId = "sonam";
+        Jwt jwt = jwt(authenticationId);
+        when(this.jwtDecoder.decode(anyString())).thenReturn(Mono.just(jwt));
+
         LOG.info("create application");
         UUID clientId = UUID.randomUUID();
         UUID creatorUserId = UUID.randomUUID();
         UUID organizationId = UUID.randomUUID();
 
         ApplicationBody applicationBody = new ApplicationBody(null, "Baggy Pants Company",clientId.toString(), creatorUserId, organizationId, ApplicationUser.RoleNamesEnum.user.name(), "");
-        EntityExchangeResult<String> result = webTestClient.post().uri("/applications").bodyValue(applicationBody)
+        EntityExchangeResult<String> result = webTestClient.post().uri("/applications").headers(addJwt(jwt)).bodyValue(applicationBody)
                 .exchange().expectStatus().isCreated().expectBody(String.class).returnResult();
 
         UUID applicationId = UUID.fromString(result.getResponseBody().toString());
 
         LOG.info("get applications by id {} and all users in it", applicationId);
         EntityExchangeResult<RestPage> createdResult = webTestClient.get().uri("/applications/"+applicationId+"/users")
+                .headers(addJwt(jwt))
                 .exchange().expectStatus().isOk().expectBody(RestPage.class).returnResult();
 
         LOG.info("pageResult pageable {}", createdResult.getResponseBody().getPageable());
@@ -95,7 +109,7 @@ public class ApplicationRestServiceTest {
         createdResult.getResponseBody().getContent().forEach(o -> LOG.info("object: {}", o));
 
         LOG.info("trying to send the same payload leads to an error because clientId has already been used");
-        webTestClient.post().uri("/applications").bodyValue(applicationBody)
+        webTestClient.post().uri("/applications").headers(addJwt(jwt)).bodyValue(applicationBody)
                 .exchange().expectStatus().is4xxClientError().expectBody(String.class).
                 consumeWith(stringEntityExchangeResult -> LOG.info("response: {}", stringEntityExchangeResult.getResponseBody()));
 
@@ -104,6 +118,7 @@ public class ApplicationRestServiceTest {
 
         LOG.info("second call with the same applicationBody should produce the results with ApplicationUser");
         createdResult = webTestClient.get().uri("/applications/"+applicationId+"/users")
+                .headers(addJwt(jwt))
                 .exchange().expectStatus().isOk().expectBody(RestPage.class).returnResult();
 
         LOG.info("pageResult pageable {}", createdResult.getResponseBody().getPageable());
@@ -120,13 +135,14 @@ public class ApplicationRestServiceTest {
 
         LOG.info("verify application can be retrieved");
 
-        result = webTestClient.get().uri("/applications").exchange().expectStatus().isOk().expectBody(String.class)
+        result = webTestClient.get().uri("/applications").headers(addJwt(jwt)).exchange()
+                .expectStatus().isOk().expectBody(String.class)
                 .returnResult();
 
         LOG.info("page result contains: {}", result);
 
         applicationBody = new ApplicationBody(applicationId, "New Name", clientId.toString(), creatorUserId, organizationId, ApplicationUser.RoleNamesEnum.admin.name(), "manager");
-        result = webTestClient.put().uri("/applications").bodyValue(applicationBody)
+        result = webTestClient.put().uri("/applications").headers(addJwt(jwt)).bodyValue(applicationBody)
                 .exchange().expectStatus().isOk().expectBody(String.class).returnResult();
 
         LOG.info("result from update: {}", result.getResponseBody());
@@ -152,12 +168,13 @@ public class ApplicationRestServiceTest {
 
         LOG.info("add users to application");
 
-        result = webTestClient.put().uri("/applications/users").bodyValue(applicationUserBodies)
+        result = webTestClient.put().uri("/applications/users").headers(addJwt(jwt)).bodyValue(applicationUserBodies)
                 .exchange().expectStatus().isOk().expectBody(String.class).returnResult();
         LOG.info("result: {}", result.getResponseBody());
 
         LOG.info("get applications by id and all users in it, which should give 4 applicationUsers");
         createdResult = webTestClient.get().uri("/applications/"+applicationId+"/users")
+                .headers(addJwt(jwt))
                 .exchange().expectStatus().isOk().expectBody(RestPage.class).returnResult();
 
         LOG.info("pageResult pageable {}", createdResult.getResponseBody().getPageable());
@@ -194,6 +211,7 @@ public class ApplicationRestServiceTest {
 
         LOG.info("get applications by id and all users in it");
         EntityExchangeResult<RestPage> pageResult = webTestClient.get().uri("/applications/"+applicationId+"/users")
+                .headers(addJwt(jwt))
                 .exchange().expectStatus().isOk().expectBody(RestPage.class).returnResult();
         //LOG.info("result: {}", result.getResponseBody());
         LOG.info("pageResult pageable {}", pageResult.getResponseBody().getPageable());
@@ -218,12 +236,13 @@ public class ApplicationRestServiceTest {
         LOG.info("add user to application");
 
         result = webTestClient.put().uri("/applications/users").bodyValue(applicationUserBodies)
+                .headers(addJwt(jwt))
                 .exchange().expectStatus().isOk().expectBody(String.class).returnResult();
         LOG.info("update user add and delete result: {}", result.getResponseBody());
 
         LOG.info("get applications by id and all users in it, which should give 3 applicationUsers after deleting the userUpdate3");
         createdResult = webTestClient.get().uri("/applications/"+applicationId+"/users")
-                .exchange().expectStatus().isOk().expectBody(RestPage.class).returnResult();
+                .headers(addJwt(jwt)).exchange().expectStatus().isOk().expectBody(RestPage.class).returnResult();
 
         LOG.info("pageResult pageable {}", createdResult.getResponseBody().getPageable());
         LOG.info("assert that only applicationuser exists");
@@ -254,17 +273,20 @@ public class ApplicationRestServiceTest {
 
         LOG.info("get all users in application {}", applicationId);
         result = webTestClient.get().uri("/applications/"+applicationId+"/users")
-                .exchange().expectStatus().isOk().expectBody(String.class).returnResult();
+                .headers(addJwt(jwt)).exchange().expectStatus().isOk().expectBody(String.class).returnResult();
         LOG.info("result: {}", result.getResponseBody());
 
-        result = webTestClient.get().uri("applications/"+organizationId).exchange().expectStatus().isOk()
+        LOG.info("get by organizationId: {}", organizationId);
+
+        result = webTestClient.get().uri("/applications/"+organizationId)
+                .headers(addJwt(jwt)).exchange().expectStatus().isOk()
                 .expectBody(String.class).returnResult();
         LOG.info("got page results for applications by organizations: {}", result);
 
 
 
         EntityExchangeResult<RoleGroupNames> clientRoleGroups = webTestClient.get().uri("/applications/clients/"+clientId+"/users/"+userId1)
-                .exchange().expectStatus().isOk().expectBody(RoleGroupNames.class).returnResult();
+                .headers(addJwt(jwt)).exchange().expectStatus().isOk().expectBody(RoleGroupNames.class).returnResult();
 
         assertThat(clientRoleGroups.getResponseBody().getGroupNames().length).isEqualTo(2);
         LOG.info("groupNames: {}", clientRoleGroups.getResponseBody().getGroupNames());
@@ -275,7 +297,7 @@ public class ApplicationRestServiceTest {
         assertThat(clientRoleGroups.getResponseBody().getUserRole()).isEqualTo("user");
 
         clientRoleGroups = webTestClient.get().uri("/applications/clients/"+clientId+"/users/"+userId2)
-                .exchange().expectStatus().isOk().expectBody(RoleGroupNames.class).returnResult();
+                .headers(addJwt(jwt)).exchange().expectStatus().isOk().expectBody(RoleGroupNames.class).returnResult();
 
         assertThat(clientRoleGroups.getResponseBody().getGroupNames()).isNull();
         assertThat(clientRoleGroups.getResponseBody().getUserRole()).isEqualTo("user");
@@ -283,7 +305,9 @@ public class ApplicationRestServiceTest {
         webTestClient.get().uri("/applications/clients/"+clientId+"/users/"+userId3)
                 .exchange().expectStatus().is4xxClientError();
 
-        result = webTestClient.delete().uri("/applications/"+applicationId).exchange().expectStatus().isOk().expectBody(String.class)
+        result = webTestClient.delete().uri("/applications/"+applicationId).headers(addJwt(jwt))
+                .exchange()
+                .expectStatus().isOk().expectBody(String.class)
                 .returnResult();
         assertThat(result.getResponseBody()).isEqualTo("application deleted");
 
@@ -300,6 +324,15 @@ public class ApplicationRestServiceTest {
             LOG.error("failed to marshal to ApplicationUser", e);
             return null;
         }
+    }
+
+    private Jwt jwt(String subjectName) {
+        return new Jwt("token", null, null,
+                Map.of("alg", "none"), Map.of("sub", subjectName));
+    }
+
+    private Consumer<HttpHeaders> addJwt(Jwt jwt) {
+        return headers -> headers.setBearerAuth(jwt.getTokenValue());
     }
 
 }

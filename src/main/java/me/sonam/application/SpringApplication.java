@@ -5,14 +5,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.r2dbc.connection.init.ConnectionFactoryInitializer;
 import org.springframework.r2dbc.connection.init.ResourceDatabasePopulator;
 
-@SpringBootApplication
+//put the following scanBasePackages because jwt-validator needs to be scanned from me.sonam.security package
+// also scan this application too.
+@SpringBootApplication(scanBasePackages = {"me.sonam"})
 public class SpringApplication {
     private static final Logger LOG = LoggerFactory.getLogger(SpringApplication.class);
     public static void main(String[] args) {
+        LOG.info("starting springApplication");
+        System.out.println("starting spring application");
         org.springframework.boot.SpringApplication.run(SpringApplication.class, args);
     }
 
