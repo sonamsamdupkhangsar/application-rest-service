@@ -14,10 +14,10 @@ jobs:
         run: export PROJECT_NAME=$(echo ${{ github.repository }} | cut -d / -f2); echo $PROJECT_NAME
 
       - name: Checkout main
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Setup Open JDK 16
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'adopt'
@@ -31,9 +31,10 @@ jobs:
           generate-branches-badge: true
 
       - name: Publish package
-        run: mvn --batch-mode deploy
+        run: mvn -s settings.xml --batch-mode deploy
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
       - name: Publish Pacts
         run: mvn pact:publish -Dpactbrokerurl=${{ secrets.PACTBROKER_URL }} -Dpactbrokerusername=${{ secrets.PACTBROKER_USERNAME }} -Dpactbrokerpassword=${{ secrets.PACTBROKER_PASSWORD }}
@@ -54,6 +55,7 @@ jobs:
           tags: ghcr.io/${{github.repository}}:latest
           secrets: |
             GIT_AUTH_TOKEN=${{ secrets.PERSONAL_ACCESS_TOKEN }}
+            PERSONAL_ACCESS_TOKEN=${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
       - name: Install doctl
         uses: digitalocean/action-doctl@v2
