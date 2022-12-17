@@ -2,11 +2,8 @@
 This projects stores application information and the users associated with the application.  This `application-rest-service` contains the application for a client.  It can save application with association to clientId and organizationId.  It can also save user role with groupNames.
  This service requires a jwt-token.  Once the user is authenticated the user can setup application with user access and groupNames.
 
-This is a template project for starting a Spring Webflux with R2DBC for Posgresql Maven based project.
-
 
 ## Run locally
-
 ```
 mvn spring-boot:run  -Dspring-boot.run.arguments="--POSTGRES_USERNAME=dummy \
                       --POSTGRES_PASSWORD=dummy \
@@ -16,29 +13,24 @@ mvn spring-boot:run  -Dspring-boot.run.arguments="--POSTGRES_USERNAME=dummy \
  
  
 ## Build Docker image
-
 Build docker image using included Dockerfile.
-
-
-`docker build -t imageregistry/project-rest-service:1.0 .` 
+`docker build -t imageregistry/application-rest-service:1.0 .` 
 
 ## Push Docker image to repository
-
-`docker push imageregistry/project-rest-service:1.0`
+`docker push imageregistry/application-rest-service:1.0`
 
 ## Deploy Docker image locally
-
 `docker run -e POSTGRES_USERNAME=dummy \
  -e POSTGRES_PASSWORD=dummy -e POSTGRES_DBNAME=account \
   -e POSTGRES_SERVICE=localhost:5432 \
- --publish 8080:8080 imageregistry/project-rest-service:1.0`
+ --publish 8080:8080 imageregistry/application-rest-service:1.0`
 
 
 ## Installation on Kubernetes
 Use my Helm chart here @ [sonam-helm-chart](https://github.com/sonamsamdupkhangsar/sonam-helm-chart):
 
 ```
-helm install project-api sonam/mychart -f values.yaml --version 0.1.12 --namespace=yournamespace
+helm install project-api sonam/mychart -f values.yaml --version 0.1.21 --namespace=yournamespace
 ```
 
 ##Instruction for port-forwarding database pod
