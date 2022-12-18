@@ -74,7 +74,7 @@ paths:
           description: Specifies the page number of the applications to be displayed
           schema:
             type: integer
-      response:
+      responses:
         '200':
           description: Successfully returned a page of applications
           content:
@@ -104,7 +104,7 @@ paths:
                       type: string
                       format: uuid
         '400':
-          desciption: failed to get applications
+          description: failed to get applications
           content:
             application/json:
               schema:
