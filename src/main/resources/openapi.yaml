@@ -80,29 +80,14 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  required:
-                   - id
-                  properties:
-                     id:
-                      type: string
-                      format: uuid
-                     name:
-                      type: string
-                     clientId:
-                      type: string
-                      format: uuid
-                     created:
-                      type: string
-                      format: date-time
-                     creatorUserId:
-                      type: string
-                      format: uuid
-                     organizationId:
-                      type: string
-                      format: uuid
+                allOf:
+                  - $ref: '#/components/schemas/Page'
+                  - type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Application'
         '400':
           description: failed to get applications
           content:
