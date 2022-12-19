@@ -278,7 +278,7 @@ public class ApplicationRestServiceTest {
 
         LOG.info("get by organizationId: {}", organizationId);
 
-        result = webTestClient.get().uri("/applications/"+organizationId)
+        result = webTestClient.get().uri("/applications/organizations/"+organizationId)
                 .headers(addJwt(jwt)).exchange().expectStatus().isOk()
                 .expectBody(String.class).returnResult();
         LOG.info("got page results for applications by organizations: {}", result);
@@ -313,6 +313,12 @@ public class ApplicationRestServiceTest {
 
         StepVerifier.create(applicationRepository.existsById(applicationId)).expectNext(false).expectComplete();
         applicationRepository.existsById(applicationId).subscribe(aBoolean -> LOG.info("should be false after deletion: {}",aBoolean));
+
+        LOG.info("expect bad request after deleting the orgainzationId");
+        result = webTestClient.get().uri("/applications/"+applicationId)
+                .headers(addJwt(jwt)).exchange().expectStatus().isBadRequest()
+                .expectBody(String.class).returnResult();
+        LOG.info("got page results for applications by organizations: {}", result);
     }
 
     private ApplicationUser getApplicationUser(String string) {
@@ -352,6 +358,4 @@ class RestPage<T> extends PageImpl<T> {
     public RestPage(Page<T> page) {
         super(page.getContent(), page.getPageable(), page.getTotalElements());
     }
-
-
 }

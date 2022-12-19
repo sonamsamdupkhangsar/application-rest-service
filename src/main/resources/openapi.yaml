@@ -98,12 +98,35 @@ paths:
 
 
   /applications/{applicationId}:
+    get:
+      description: get application by application id
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successfully retrieved application by id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+        '400':
+          description: No application found with id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestBody'
+
     delete:
       description: delete application
       parameters:
         - name: applicationId
           in: path
-          require: true
+          required: true
           schema:
             type: string
             format: uuid
@@ -123,7 +146,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BadRequestBody'
-  /applications/{organizationId}:
+  /applications/organizations/{organizationId}:
     get:
       description: get applications for organization id
       parameters:
