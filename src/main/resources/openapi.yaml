@@ -1,0 +1,372 @@
+openapi: "3.0.2"
+info:
+  title: API Title
+  version: "1.0"
+servers:
+  - url: https://application-rest-service.sonam.cloud
+
+security:
+  - bearerAuth: []
+paths:
+
+  /applications:
+    post:
+      description: create an application
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationBody'
+
+      responses:
+        '201':
+          description: Successfully created new application
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    format: uuid
+        '400':
+          description: application with clientId already exists
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+    put:
+      description: update application
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationBody'
+      responses:
+        '200':
+          description: returns uuid of applicationId
+          content:
+            application/json:
+              schema:
+               $ref: '#/components/schemas/OkResponseBody'
+        '400':
+          description: application with clientId already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestBody'
+    get:
+      description: get applications by page
+      parameters:
+        - name: size
+          in: query
+          description: numbers of items on a page
+          schema:
+            type: integer
+        - name: page
+          in: query
+          description: Specifies the page number of the applications to be displayed
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successfully returned a page of applications
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Page'
+                  - type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Application'
+        '400':
+          description: failed to get applications
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestBody'
+
+
+
+  /applications/{applicationId}:
+    get:
+      description: get application by application id
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successfully retrieved application by id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+        '400':
+          description: No application found with id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestBody'
+
+    delete:
+      description: delete application
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: application deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: failed to delete application
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestBody'
+  /applications/organizations/{organizationId}:
+    get:
+      description: get applications for organization id
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successfully returned applications for organization id
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Page'
+                  - type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Application'
+
+        '400':
+          description: Failed to get Applications by organization id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestBody'
+  /applications/users:
+    put:
+      description: update user association to application items
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationUserBody'
+      responses:
+        '200':
+          description: updated list of user with application items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: failed to update users with application
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestBody'
+  /applications/{applicationId}/users:
+    get:
+      description: get applicationusers by applicationId
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successfully returned list of ApplicationUsers by applicationId
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationUser'
+        '400':
+           description: failed to return ApplicationUsers by applicationId
+           content:
+             application/json:
+               schema:
+                 $ref: '#/components/schemas/BadRequestBody'
+
+  /applications/clients/{clientId}/users/{userId}:
+    get:
+      description: get ClientRoleGroupNames by clientId for userId
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successfully returning a role and group names
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleGroupNames'
+        '400':
+          description: failed to get role and group names for userId
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestBody'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Page:
+      type: object
+      properties:
+        number:
+          type: integer
+        size:
+          type: integer
+
+    Application:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        clientId:
+          type: string
+          format: uuid
+        created:
+          type: string
+          format: date-time
+        creatorUserId:
+          type: string
+          format: uuid
+        organizationId:
+          type: string
+          format: uuid
+    ApplicationBody:
+      type: object
+      required:
+        - name
+        - clientId
+      properties:
+        name:
+          type: string
+        clientId:
+          type: string
+        creatorUserId:
+          type: string
+          format: uuid
+        organizationId:
+          type: string
+          format: uuid
+        userRole:
+          type: string
+          enum:
+            - admin
+            - user
+        groupNames:
+          type: string
+    ApplicationUser:
+      type: object
+      required:
+        - id
+        - applicationId
+        - userId
+      properties:
+        id:
+          type: string
+          format: uuid
+        applicationId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        userRole:
+          type: string
+          enum:
+            - admin
+            - user
+        groupNames:
+          type: string
+    ApplicationUserBody:
+      allOf:
+        - $ref: '#/components/schemas/ApplicationUser'
+        - type: object
+          required:
+            - updateAction
+          properties:
+            updateAction:
+              type: string
+              enum: [add, update, delete]
+    RoleGroupNames:
+      type: object
+      properties:
+        userRole:
+          type: string
+        groupNames:
+          type: array
+          items:
+            type: string
+
+    BadRequestBody:
+      type: object
+      properties:
+        message:
+          type: string
+    OkResponseBody:
+      type: object
+      properties:
+        message:
+          type: string
+          format: uuid
+

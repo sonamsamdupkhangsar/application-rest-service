@@ -37,6 +37,14 @@ public class ApplicationAssociation implements ApplicationBehavior {
     }
 
     @Override
+    public Mono<Application> getApplicationById(UUID applicationId) {
+        LOG.info("get application byd id");
+        return applicationRepository.findById(applicationId).
+                switchIfEmpty(Mono.error(new ApplicationException("No application found with id")));
+
+    }
+
+    @Override
     public Mono<Page<Application>> getOrganizationApplications(UUID organizationId, Pageable pageable) {
         LOG.info("get organization applications");
 
@@ -100,7 +108,7 @@ public class ApplicationAssociation implements ApplicationBehavior {
             if (applicationUserBody.getUpdateAction().equals(ApplicationUserBody.UpdateAction.add)) {
                 applicationUserRepository.existsByApplicationIdAndUserId(
                         applicationUserBody.getApplicationId(), applicationUserBody.getUserId())
-                        .doOnNext(aBoolean -> LOG.info("exists by orgIdAndUserId already?: {}", aBoolean))
+                        .doOnNext(aBoolean -> LOG.info("exists by applicationIdAndUserId already?: {}", aBoolean))
                         .filter(aBoolean -> !aBoolean)
                         .map(aBoolean -> new ApplicationUser
                                 (null, applicationUserBody.getApplicationId(), applicationUserBody.getUserId(),

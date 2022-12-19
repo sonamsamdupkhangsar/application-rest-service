@@ -12,6 +12,7 @@ import java.util.UUID;
 
 public interface ApplicationBehavior {
     Mono<Page<Application>> getApplications(Pageable pageable);
+    Mono<Application> getApplicationById(UUID applicationId);
     Mono<Page<Application>> getOrganizationApplications(UUID organizationId, Pageable pageable);
     Mono<String> createApplication(Mono<ApplicationBody> applicationBodyMono);
     Mono<String> updateApplication(Mono<ApplicationBody> applicationBodyMono);

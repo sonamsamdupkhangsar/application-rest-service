@@ -22,13 +22,25 @@ public class Handler {
     private ApplicationBehavior applicationBehavior;
 
     public Mono<ServerResponse> getApplications(ServerRequest serverRequest) {
-        LOG.info("get organizations");
+        LOG.info("get applications");
         Pageable pageable = Util.getPageable(serverRequest);
 
         return applicationBehavior.getApplications(pageable)
                 .flatMap(s -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(s))
                 .onErrorResume(throwable -> {
                     LOG.error("get applications call failed", throwable);
+                    return ServerResponse.badRequest().contentType(MediaType.APPLICATION_JSON)
+                            .bodyValue(throwable.getMessage());
+                });
+    }
+
+    public Mono<ServerResponse> getApplication(ServerRequest serverRequest) {
+        LOG.info("get application");
+
+        return applicationBehavior.getApplicationById(UUID.fromString(serverRequest.pathVariable("applicationId")))
+                .flatMap(s -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(s))
+                .onErrorResume(throwable -> {
+                    LOG.error("get application by id failed", throwable);
                     return ServerResponse.badRequest().contentType(MediaType.APPLICATION_JSON)
                             .bodyValue(throwable.getMessage());
                 });
