@@ -3,6 +3,9 @@ package me.sonam.application;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import me.sonam.application.handler.ApplicationBody;
 import me.sonam.application.handler.ApplicationUserBody;
@@ -288,6 +291,9 @@ public class ApplicationRestServiceTest {
         EntityExchangeResult<RoleGroupNames> clientRoleGroups = webTestClient.get().uri("/applications/clients/"+clientId+"/users/"+userId1)
                 .headers(addJwt(jwt)).exchange().expectStatus().isOk().expectBody(RoleGroupNames.class).returnResult();
 
+        LOG.info("roleGroups: {}", clientRoleGroups.getResponseBody());
+        marshalToJson(clientRoleGroups.getResponseBody());
+
         assertThat(clientRoleGroups.getResponseBody().getGroupNames().length).isEqualTo(2);
         LOG.info("groupNames: {}", clientRoleGroups.getResponseBody().getGroupNames());
         LOG.info("groupNames.length: {}", clientRoleGroups.getResponseBody().getGroupNames().length);
@@ -341,6 +347,16 @@ public class ApplicationRestServiceTest {
         return headers -> headers.setBearerAuth(jwt.getTokenValue());
     }
 
+    public void marshalToJson(Object object) {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            final String json = objectMapper.writeValueAsString(object);
+            LOG.info("json: {}", json);
+        }
+        catch (JsonProcessingException je) {
+            LOG.error("failed to generate Json", je);
+        }
+    }
 }
 @JsonIgnoreProperties(ignoreUnknown = true, value = {"pageable"})
 class RestPage<T> extends PageImpl<T> {

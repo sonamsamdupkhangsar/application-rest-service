@@ -3,7 +3,8 @@ info:
   title: API Title
   version: "1.0"
 servers:
-  - url: https://application-rest-service.sonam.cloud
+  - url: https://localhost:8082
+    description: local dev server
 
 security:
   - bearerAuth: []
@@ -18,7 +19,11 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ApplicationBody'
-
+            example:
+              name: "My Messaging App"
+              clientId: 1222-myclientId
+              creatorUserId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+              organizationId: 3fa85f64-5717-4562-b3fc-2c963f66afa7
       responses:
         '201':
           description: Successfully created new application
@@ -97,11 +102,11 @@ paths:
 
 
 
-  /applications/{applicationId}:
+  /applications/{id}:
     get:
       description: get application by application id
       parameters:
-        - name: applicationId
+        - name: id
           in: path
           required: true
           schema:
@@ -146,11 +151,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BadRequestBody'
-  /applications/organizations/{organizationId}:
+  /applications/organizations/{id}:
     get:
       description: get applications for organization id
       parameters:
-        - name: organizationId
+        - name: id
           in: path
           required: true
           schema:
@@ -308,13 +313,6 @@ components:
         organizationId:
           type: string
           format: uuid
-        userRole:
-          type: string
-          enum:
-            - admin
-            - user
-        groupNames:
-          type: string
     ApplicationUser:
       type: object
       required:
@@ -357,7 +355,6 @@ components:
           type: array
           items:
             type: string
-
     BadRequestBody:
       type: object
       properties:
