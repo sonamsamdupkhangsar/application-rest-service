@@ -1,9 +1,9 @@
 openapi: "3.0.2"
 info:
-  title: API Title
+  title: Application Rest api
   version: "1.0"
 servers:
-  - url: https://localhost:8082
+  - url: http://localhost:8082
     description: local dev server
 
 security:
@@ -32,7 +32,7 @@ paths:
               schema:
                 type: object
                 properties:
-                  message:
+                  id:
                     type: string
                     format: uuid
         '400':
@@ -42,7 +42,7 @@ paths:
               schema:
                 type: object
                 properties:
-                  message:
+                  error:
                     type: string
 
     put:
