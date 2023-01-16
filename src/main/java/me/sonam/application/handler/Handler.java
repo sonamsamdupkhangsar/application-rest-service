@@ -39,7 +39,7 @@ public class Handler {
     public Mono<ServerResponse> getApplication(ServerRequest serverRequest) {
         LOG.info("get application");
 
-        return applicationBehavior.getApplicationById(UUID.fromString(serverRequest.pathVariable("applicationId")))
+        return applicationBehavior.getApplicationById(UUID.fromString(serverRequest.pathVariable("id")))
                 .flatMap(s -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(s))
                 .onErrorResume(throwable -> {
                     LOG.error("get application by id failed", throwable);
@@ -99,7 +99,7 @@ public class Handler {
     public Mono<ServerResponse> deleteApplication(ServerRequest serverRequest) {
         LOG.info("delete applicationUser");
 
-        return applicationBehavior.deleteApplication(UUID.fromString(serverRequest.pathVariable("applicationId")))
+        return applicationBehavior.deleteApplication(UUID.fromString(serverRequest.pathVariable("id")))
                 .flatMap(s -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(s))
                 .onErrorResume(throwable -> {
                     LOG.error("create failed", throwable);
@@ -125,7 +125,7 @@ public class Handler {
 
         Pageable pageable = Util.getPageable(serverRequest);
 
-        return applicationBehavior.getApplicationUsers(UUID.fromString(serverRequest.pathVariable("applicationId")), pageable)
+        return applicationBehavior.getApplicationUsers(UUID.fromString(serverRequest.pathVariable("id")), pageable)
                 .flatMap(s -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(s))
                 .onErrorResume(throwable -> {
                     LOG.error("get application user call failed", throwable);
