@@ -90,45 +90,44 @@ public class ApplicationRestServiceTest {
         UUID organizationId = UUID.randomUUID();
 
         ApplicationBody applicationBody = new ApplicationBody(null, "Baggy Pants Company",clientId.toString(), creatorUserId, organizationId, ApplicationUser.RoleNamesEnum.user.name(), "");
-        EntityExchangeResult<String> result = webTestClient.post().uri("/applications").headers(addJwt(jwt)).bodyValue(applicationBody)
-                .exchange().expectStatus().isCreated().expectBody(String.class).returnResult();
+        EntityExchangeResult<Map> createResult = webTestClient.post().uri("/applications").headers(addJwt(jwt)).bodyValue(applicationBody)
+                .exchange().expectStatus().isCreated().expectBody(Map.class).returnResult();
 
-        UUID applicationId = UUID.fromString(result.getResponseBody().toString());
+        UUID applicationId = UUID.fromString(createResult.getResponseBody().get("id").toString());
+        LOG.info("result: {}", createResult.getResponseBody());
+        assertThat(createResult.getResponseBody().get("id")).isNotNull();
 
         LOG.info("get applications by id {} and all users in it", applicationId);
-        EntityExchangeResult<RestPage> createdResult = webTestClient.get().uri("/applications/"+applicationId+"/users")
+        EntityExchangeResult<RestPage> usersResult = webTestClient.get().uri("/applications/"+applicationId+"/users")
                 .headers(addJwt(jwt))
                 .exchange().expectStatus().isOk().expectBody(RestPage.class).returnResult();
 
-        LOG.info("pageResult pageable {}", createdResult.getResponseBody().getPageable());
+        LOG.info("pageResult pageable {}", usersResult.getResponseBody().getPageable());
         LOG.info("assert that only applicationuser exists");
-        assertThat(createdResult.getResponseBody().getContent().size()).isEqualTo(1);
-        LOG.info("applicationUser: {}", createdResult.getResponseBody().getContent().get(0));
-        Object obj = createdResult.getResponseBody().getContent().get(0);
+        assertThat(usersResult.getResponseBody().getContent().size()).isEqualTo(1);
+        LOG.info("applicationUser: {}", usersResult.getResponseBody().getContent().get(0));
+        Object obj = usersResult.getResponseBody().getContent().get(0);
         LOG.info("obj.class {}, obj: {}", obj.getClass(), obj);
         LinkedHashMap linkedHashMap = (LinkedHashMap) obj;
         assertThat(linkedHashMap.get("userRole")).isEqualTo("user");
 
-        createdResult.getResponseBody().getContent().forEach(o -> LOG.info("object: {}", o));
+        usersResult.getResponseBody().getContent().forEach(o -> LOG.info("object: {}", o));
 
         LOG.info("trying to send the same payload leads to an error because clientId has already been used");
         webTestClient.post().uri("/applications").headers(addJwt(jwt)).bodyValue(applicationBody)
                 .exchange().expectStatus().is4xxClientError().expectBody(String.class).
                 consumeWith(stringEntityExchangeResult -> LOG.info("response: {}", stringEntityExchangeResult.getResponseBody()));
 
-        LOG.info("result: {}", result.getResponseBody());
-        assertThat(result.getResponseBody()).isNotEmpty();
-
         LOG.info("second call with the same applicationBody should produce the results with ApplicationUser");
-        createdResult = webTestClient.get().uri("/applications/"+applicationId+"/users")
+        usersResult = webTestClient.get().uri("/applications/"+applicationId+"/users")
                 .headers(addJwt(jwt))
                 .exchange().expectStatus().isOk().expectBody(RestPage.class).returnResult();
 
-        LOG.info("pageResult pageable {}", createdResult.getResponseBody().getPageable());
+        LOG.info("pageResult pageable {}", usersResult.getResponseBody().getPageable());
         LOG.info("assert that only applicationuser exists");
-        assertThat(createdResult.getResponseBody().getContent().size()).isEqualTo(1);
-        LOG.info("applicationUser: {}", createdResult.getResponseBody().getContent().get(0));
-        obj = createdResult.getResponseBody().getContent().get(0);
+        assertThat(usersResult.getResponseBody().getContent().size()).isEqualTo(1);
+        LOG.info("applicationUser: {}", usersResult.getResponseBody().getContent().get(0));
+        obj = usersResult.getResponseBody().getContent().get(0);
         LOG.info("obj.class {}, obj: {}", obj.getClass(), obj);
         linkedHashMap = (LinkedHashMap) obj;
         assertThat(linkedHashMap.get("userRole")).isEqualTo("user");
@@ -138,14 +137,14 @@ public class ApplicationRestServiceTest {
 
         LOG.info("verify application can be retrieved");
 
-        result = webTestClient.get().uri("/applications").headers(addJwt(jwt)).exchange()
+        EntityExchangeResult<String> result2 = webTestClient.get().uri("/applications").headers(addJwt(jwt)).exchange()
                 .expectStatus().isOk().expectBody(String.class)
                 .returnResult();
 
-        LOG.info("page result contains: {}", result);
+        LOG.info("page result contains: {}", result2);
 
         applicationBody = new ApplicationBody(applicationId, "New Name", clientId.toString(), creatorUserId, organizationId, ApplicationUser.RoleNamesEnum.admin.name(), "manager");
-        result = webTestClient.put().uri("/applications").headers(addJwt(jwt)).bodyValue(applicationBody)
+        EntityExchangeResult<String> result = webTestClient.put().uri("/applications").headers(addJwt(jwt)).bodyValue(applicationBody)
                 .exchange().expectStatus().isOk().expectBody(String.class).returnResult();
 
         LOG.info("result from update: {}", result.getResponseBody());
@@ -176,15 +175,15 @@ public class ApplicationRestServiceTest {
         LOG.info("result: {}", result.getResponseBody());
 
         LOG.info("get applications by id and all users in it, which should give 4 applicationUsers");
-        createdResult = webTestClient.get().uri("/applications/"+applicationId+"/users")
+        usersResult = webTestClient.get().uri("/applications/"+applicationId+"/users")
                 .headers(addJwt(jwt))
                 .exchange().expectStatus().isOk().expectBody(RestPage.class).returnResult();
 
-        LOG.info("pageResult pageable {}", createdResult.getResponseBody().getPageable());
+        LOG.info("pageResult pageable {}", usersResult.getResponseBody().getPageable());
         LOG.info("assert that only applicationuser exists");
-        assertThat(createdResult.getResponseBody().getContent().size()).isEqualTo(4);
-        LOG.info("applicationUser: {}", createdResult.getResponseBody().getContent().get(0));
-        createdResult.getResponseBody().getContent().forEach(o -> {
+        assertThat(usersResult.getResponseBody().getContent().size()).isEqualTo(4);
+        LOG.info("applicationUser: {}", usersResult.getResponseBody().getContent().get(0));
+        usersResult.getResponseBody().getContent().forEach(o -> {
             LinkedHashMap<String, String> linkedHashMap1 = (LinkedHashMap) o;
 
             LOG.info("linkedHashMap1: {}", linkedHashMap1);
@@ -207,7 +206,7 @@ public class ApplicationRestServiceTest {
             }
 
         });
-        obj = createdResult.getResponseBody().getContent().get(0);
+        obj = usersResult.getResponseBody().getContent().get(0);
         LOG.info("obj.class {}, obj: {}", obj.getClass(), obj);
         linkedHashMap = (LinkedHashMap) obj;
         assertThat(linkedHashMap.get("userRole")).isEqualTo("user");
@@ -244,14 +243,14 @@ public class ApplicationRestServiceTest {
         LOG.info("update user add and delete result: {}", result.getResponseBody());
 
         LOG.info("get applications by id and all users in it, which should give 3 applicationUsers after deleting the userUpdate3");
-        createdResult = webTestClient.get().uri("/applications/"+applicationId+"/users")
+        usersResult = webTestClient.get().uri("/applications/"+applicationId+"/users")
                 .headers(addJwt(jwt)).exchange().expectStatus().isOk().expectBody(RestPage.class).returnResult();
 
-        LOG.info("pageResult pageable {}", createdResult.getResponseBody().getPageable());
+        LOG.info("pageResult pageable {}", usersResult.getResponseBody().getPageable());
         LOG.info("assert that only applicationuser exists");
-        assertThat(createdResult.getResponseBody().getContent().size()).isEqualTo(3);
-        LOG.info("applicationUser: {}", createdResult.getResponseBody().getContent().get(0));
-        createdResult.getResponseBody().getContent().forEach(o -> {
+        assertThat(usersResult.getResponseBody().getContent().size()).isEqualTo(3);
+        LOG.info("applicationUser: {}", usersResult.getResponseBody().getContent().get(0));
+        usersResult.getResponseBody().getContent().forEach(o -> {
             LinkedHashMap<String, String> linkedHashMap1 = (LinkedHashMap) o;
 
             LOG.info("linkedHashMap1: {}", linkedHashMap1);
