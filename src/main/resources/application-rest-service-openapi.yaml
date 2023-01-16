@@ -207,11 +207,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BadRequestBody'
-  /applications/{applicationId}/users:
+  /applications/{id}/users:
     get:
-      description: get applicationusers by applicationId
+      description: get applicationusers by application id
       parameters:
-        - name: applicationId
+        - name: id
           in: path
           required: true
           schema:

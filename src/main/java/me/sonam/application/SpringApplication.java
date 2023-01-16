@@ -14,6 +14,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsWebFilter;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
+
 //put the following scanBasePackages because jwt-validator needs to be scanned from me.sonam.security package
 // also scan this application too.
 @EnableEurekaClient
@@ -43,7 +45,7 @@ public class SpringApplication {
         LOG.info("allow cors filter");
         CorsConfiguration corsConfig = new CorsConfiguration();
         corsConfig.setMaxAge(8000L);
-        corsConfig.addAllowedOrigin("*");
+        corsConfig.setAllowedOrigins(Arrays.asList("http://localhost:8080", "https://swaggerui.sonam.cloud"));
         corsConfig.addAllowedMethod("GET");
         corsConfig.addAllowedMethod("POST");
         corsConfig.addAllowedHeader("Content-Type");
