@@ -3,12 +3,25 @@ This projects stores application information and the users associated with the a
  This service requires a jwt-token.  Once the user is authenticated the user can setup application with user access and groupNames.
 
 
-## Run locally
+## Run locally using profile
+Use the following to run local profile which will pick up properties defined in the `application-local.yml` :
+
+
 ```
-mvn spring-boot:run  -Dspring-boot.run.arguments="--POSTGRES_USERNAME=dummy \
-                      --POSTGRES_PASSWORD=dummy \
-                      --POSTGRES_DBNAME=account \
-                      --POSTGRES_SERVICE=localhost:5432"
+mvn spring-boot:run -Dspring-boot.run.arguments="--spring.profiles.active=local"
+```
+
+Or you can do something like following too:
+
+```
+
+mvn spring-boot:run -Dspring-boot.run.arguments="--server.port=8082  \
+    --POSTGRES_USERNAME=test \
+    --POSTGRES_PASSWORD=test \
+    --POSTGRES_DBNAME=application \
+    --POSTGRES_SERVICE=localhost:5432
+    --DB_SSLMODE=disable
+    --eureka.client.enabled=false"       
 ```
  
  

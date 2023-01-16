@@ -2,7 +2,7 @@ logging:
   level:
     root: error
     me:
-      sonam: info
+      sonam: debug
 info:
   app:
     name: Springboot me.sonam.account.Application
@@ -23,7 +23,16 @@ spring:
     username: ${POSTGRES_USERNAME}
     password: ${POSTGRES_PASSWORD}
     properties:
-      sslMode: REQUIRE
+      sslMode: ${DB_SSLMODE}
 
-permitPaths: /api/health/*
-jwt-rest-service-public-key-id: http://localhost:{port}/jwt-rest-service/publickeys/{keyId}
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: https://${EUREKA_USER}:${EUREKA_PASSWORD}@discovery-service.sonam.cloud/eureka
+
+jwt-rest-service-public-key-id: http://jwt-rest-service-mychart.backend.svc.cluster.local:80/jwts/publickeys/{keyId}
+
+
+me.sonam.jwt-validator:
+  permitpath:
+    - path: /api/health/*

@@ -85,7 +85,8 @@ postgres:
 
 
 envs:
-
+  - name: DB_SSLMODE
+    value: REQUIRE
 
 health:
   liveness:

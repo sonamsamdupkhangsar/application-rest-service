@@ -19,6 +19,6 @@ public interface ApplicationBehavior {
     Mono<String> deleteApplication(UUID applicationId);
     Mono<String> updateApplicationUsers(Flux<ApplicationUserBody> applicationUserBodyMono);
     Mono<Page<ApplicationUser>> getApplicationUsers(UUID applicationId, Pageable pageable);
-    Mono<RoleGroupNames> getClientRoleGroupNames(UUID clientId, UUID userId);
+    Mono<RoleGroupNames> getClientRoleGroupNames(String clientId, UUID userId);
 
 }

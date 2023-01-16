@@ -12,6 +12,8 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
 import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -64,11 +66,20 @@ public class Handler {
         LOG.info("create application");
 
         return applicationBehavior.createApplication(serverRequest.bodyToMono(ApplicationBody.class))
-                .flatMap(s -> ServerResponse.created(URI.create("/applications/"+s)).contentType(MediaType.APPLICATION_JSON).bodyValue(s))
+                .flatMap(s -> {
+                        Map<String, String> map = new HashMap<>();
+                        map.put("id", s);
+                        return ServerResponse.created(URI.create("/applications/" + s))
+                                .contentType(MediaType.APPLICATION_JSON).bodyValue(map);
+                    }
+                )
                 .onErrorResume(throwable -> {
                     LOG.error("create failed", throwable);
+                    Map<String, String> map = new HashMap<>();
+                    map.put("error", throwable.getMessage());
+
                     return ServerResponse.badRequest().contentType(MediaType.APPLICATION_JSON)
-                            .bodyValue(throwable.getMessage());
+                            .bodyValue(map);
                 });
     }
 
@@ -126,7 +137,7 @@ public class Handler {
     public Mono<ServerResponse> getClientRoleGroupNames(ServerRequest serverRequest) {
         LOG.info("get role based on client userId");
 
-        return applicationBehavior.getClientRoleGroupNames(UUID.fromString(serverRequest.pathVariable("clientId")),
+        return applicationBehavior.getClientRoleGroupNames(serverRequest.pathVariable("clientId"),
                 UUID.fromString(serverRequest.pathVariable("userId")))
                 .flatMap(s -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(s))
                 .onErrorResume(throwable -> {

@@ -58,7 +58,7 @@ public class ApplicationAssociation implements ApplicationBehavior {
         LOG.info("create application");
 
         return applicationBodyMono.flatMap(applicationBody ->
-                applicationRepository.existsByClientId(UUID.fromString(applicationBody.getClientId()))
+                applicationRepository.existsByClientId(applicationBody.getClientId())
                 .filter(aBoolean -> !aBoolean)
                 .switchIfEmpty(Mono.error(new ApplicationException("application with clientId already exists")))
                 .map(aBoolean -> new Application(null, applicationBody.getName(),
@@ -162,7 +162,7 @@ public class ApplicationAssociation implements ApplicationBehavior {
     }
 
     @Override
-    public Mono<RoleGroupNames> getClientRoleGroupNames(UUID clientId, UUID userId) {
+    public Mono<RoleGroupNames> getClientRoleGroupNames(String clientId, UUID userId) {
         LOG.info("get application role given a clientId {} and userId {}", clientId, userId);
 
         return applicationRepository.findByClientId(clientId)
