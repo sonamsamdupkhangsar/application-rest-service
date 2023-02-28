@@ -87,6 +87,10 @@ postgres:
 envs:
   - name: DB_SSLMODE
     value: REQUIRE
+  - name: JWT_REST_SERVICE
+    value: http://jwt-rest-service-mychart.backend.svc.cluster.local:80/jwts/publickeys/{keyId}
+  - name: hmacKeyEndpoint
+    value: http://jwt-rest-service-mychart.backend.svc.cluster.local:80/jwts/hmacKey/
 
 health:
   liveness:

@@ -46,8 +46,7 @@ public class SpringApplication {
         CorsConfiguration corsConfig = new CorsConfiguration();
         corsConfig.setMaxAge(8000L);
         corsConfig.setAllowedOrigins(Arrays.asList("http://localhost:8080", "https://swaggerui.sonam.cloud"));
-        corsConfig.addAllowedMethod("GET");
-        corsConfig.addAllowedMethod("POST");
+        corsConfig.addAllowedMethod("*");
         corsConfig.addAllowedHeader("Content-Type");
         corsConfig.addAllowedHeader("api_key");
         corsConfig.addAllowedHeader("Authorization");

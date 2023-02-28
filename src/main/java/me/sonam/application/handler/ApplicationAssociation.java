@@ -5,16 +5,22 @@ import me.sonam.application.repo.ApplicationRepository;
 import me.sonam.application.repo.ApplicationUserRepository;
 import me.sonam.application.repo.entity.Application;
 import me.sonam.application.repo.entity.ApplicationUser;
+import me.sonam.security.headerfilter.ReactiveRequestContextHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import javax.annotation.PostConstruct;
 import java.util.UUID;
 
 @Service
@@ -26,6 +32,18 @@ public class ApplicationAssociation implements ApplicationBehavior {
 
     @Autowired
     private ApplicationUserRepository applicationUserRepository;
+
+    @Autowired
+    private ReactiveRequestContextHolder reactiveRequestContextHolder;
+    @Value("${hmacKeyEndpoint}")
+    private String hmacKeyEndpoint;
+
+    private WebClient webClient;
+
+    @PostConstruct
+    public void setWebClient() {
+        webClient = WebClient.builder().filter(reactiveRequestContextHolder.headerFilter()).build();
+    }
 
     @Override
     public Mono<Page<Application>> getApplications(Pageable pageable) {
@@ -57,23 +75,66 @@ public class ApplicationAssociation implements ApplicationBehavior {
     public Mono<String> createApplication(Mono<ApplicationBody> applicationBodyMono) {
         LOG.info("create application");
 
-        return applicationBodyMono.flatMap(applicationBody ->
-                applicationRepository.existsByClientId(applicationBody.getClientId())
-                .filter(aBoolean -> !aBoolean)
-                .switchIfEmpty(Mono.error(new ApplicationException("application with clientId already exists")))
-                .map(aBoolean -> new Application(null, applicationBody.getName(),
-                        applicationBody.getClientId(), applicationBody.getCreatorUserId(),
-                        applicationBody.getOrganizationId()))
-                        .flatMap(application -> applicationRepository.save(application).zipWith(Mono.just(applicationBody))))
-                .map(objects ->
-                        new ApplicationUser
-                                (null, objects.getT1().getId(), objects.getT1().getCreatorUserId(), objects.getT2().getUserRole(),
-                                        objects.getT2().getGroupNames()))
-                .flatMap(applicationUser -> applicationUserRepository.save(applicationUser))
-                .map(applicationUser -> applicationUser.getApplicationId())
-                .flatMap(uuid -> Mono.just(uuid.toString()));
+        return saveApplicationAndUser(applicationBodyMono).flatMap(application-> {
+            LOG.info("endpoint: {}", hmacKeyEndpoint+application.getClientId());
+            LOG.info("create hmacKey for application with clientId: {}", application.getClientId());
+            WebClient.ResponseSpec spec = webClient.post().uri(hmacKeyEndpoint+application.getClientId()).retrieve();
+
+            return spec.bodyToMono(String.class).flatMap(s -> {
+                LOG.info("activation response from jwt-rest-service hmac endpoint is: {}", s);
+                return Mono.just(s);
+            }).onErrorResume(throwable -> {
+                LOG.error("error on jwt-rest-service call {}", throwable);
+
+                applicationRepository.deleteByClientId(application.getClientId()).subscribe(integer ->
+                        LOG.info("delete {} application by clientId", integer));
+                applicationUserRepository.deleteByApplicationId(application.getId()).subscribe(
+                        integer ->
+                                LOG.info("delete {} applicationUser by applicationId", integer)
+                );
+
+                if (throwable instanceof WebClientResponseException) {
+                    WebClientResponseException webClientResponseException = (WebClientResponseException) throwable;
+                    LOG.error("error body contains: {}", webClientResponseException.getResponseBodyAsString());
+                    return Mono.error(new ApplicationException("failed to hmackey for clientId, error: "+webClientResponseException.getResponseBodyAsString()));
+                }
+                else {
+                    return Mono.error(new ApplicationException("jwt-rest-service hmackey creation api call failed with error: " +throwable.getMessage()));
+                }
+            }).thenReturn(application.getId().toString());
+        });
     }
 
+    public Mono<Application> saveApplicationAndUser(Mono<ApplicationBody> applicationBodyMono) {
+        LOG.info("save application and applicationUser");
+
+        return applicationBodyMono.flatMap(applicationBody ->
+                        applicationRepository.existsByClientId(applicationBody.getClientId())
+                                .flatMap(aBoolean -> {
+                                    LOG.info("existByClientId: {}, true?: {}", applicationBody.getClientId(), aBoolean);
+                                    if (aBoolean) {
+                                        return Mono.error(new ApplicationException("application with clientId already exists"));
+                                    }
+                                    else {
+                                        return Mono.just(aBoolean);
+                                    }
+                                })
+                                .flatMap(aBoolean -> {
+                                    var application = new Application(null, applicationBody.getName(),
+                                        applicationBody.getClientId(), applicationBody.getCreatorUserId(),
+                                        applicationBody.getOrganizationId());
+
+                                    applicationRepository.save(application).subscribe(application1 -> LOG.info("saved application: {}", application1));
+                                    return Mono.just(new ApplicationUser
+                                            (null, application.getId(), application.getCreatorUserId(), applicationBody.getUserRole(),
+                                                    applicationBody.getGroupNames()));
+                                })
+                .flatMap(applicationUser -> {
+                    LOG.info("save applicationUser in repo");
+                    applicationUserRepository.save(applicationUser).subscribe();
+                    return applicationRepository.findById(applicationUser.getApplicationId());
+                }));
+    }
     /**
      * this will only update the application itself, not the applicationusers
      * @param applicationBodyMono
@@ -165,11 +226,9 @@ public class ApplicationAssociation implements ApplicationBehavior {
     public Mono<RoleGroupNames> getClientRoleGroupNames(String clientId, UUID userId) {
         LOG.info("get application role given a clientId {} and userId {}", clientId, userId);
 
-        return applicationRepository.findByClientId(clientId)
+        return applicationRepository.findFirstByClientId(clientId)
                 .switchIfEmpty(Mono.error(new ApplicationException("clientId not found")))
-
-                .doOnNext(application -> LOG.info("applicaiton.id: {}", application.getId()))
-
+                .doOnNext(application -> LOG.info("application.id: {}", application.getId()))
                 .flatMap(application -> applicationUserRepository.findByApplicationIdAndUserId(application.getId(), userId))
                 .switchIfEmpty(Mono.error(new ApplicationException("no applicationUser found for applicationId and userId")))
                 .map(applicationUser ->

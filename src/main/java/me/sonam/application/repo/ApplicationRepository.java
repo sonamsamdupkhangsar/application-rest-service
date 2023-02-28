@@ -13,6 +13,7 @@ public interface ApplicationRepository extends ReactiveCrudRepository<Applicatio
     Flux<Application> findAllBy(Pageable pageable);
     Flux<Application> findAllByOrganizationId(UUID orgainzationId, Pageable pageable);
     Mono<Integer> countByOrganizationId(UUID organizationId);
-    Mono<Application> findByClientId(String clientId);
+    Mono<Application> findFirstByClientId(String clientId);
+    Mono<Integer> deleteByClientId(String clientId);
     Mono<Boolean> existsByClientId(String clientId);
 }

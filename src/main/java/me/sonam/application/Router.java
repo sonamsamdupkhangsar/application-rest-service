@@ -42,7 +42,7 @@ public class Router {
                 .andRoute(GET("/applications/organizations/{organizationId}")
                         .and(accept(MediaType.APPLICATION_JSON)), handler::getOrganizationApplications)
                 .andRoute(PUT("/applications/users")
-                        .and(accept(MediaType.APPLICATION_JSON)), handler::updateApplicationUsers)
+                        .and(accept(MediaType.TEXT_PLAIN)), handler::updateApplicationUsers)
                 .andRoute(GET("/applications/{id}/users")
                         .and(accept(MediaType.APPLICATION_JSON)), handler::getApplicationUsers)
                 .andRoute(GET("/applications/clients/{clientId}/users/{userId}")

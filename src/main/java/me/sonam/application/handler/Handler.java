@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.util.Pair;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.server.ServerRequest;
@@ -30,9 +31,9 @@ public class Handler {
         return applicationBehavior.getApplications(pageable)
                 .flatMap(s -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(s))
                 .onErrorResume(throwable -> {
-                    LOG.error("get applications call failed", throwable);
+                    LOG.error("get applications call failed, error: {}", throwable.getMessage());
                     return ServerResponse.badRequest().contentType(MediaType.APPLICATION_JSON)
-                            .bodyValue(throwable.getMessage());
+                            .bodyValue(getMap(Pair.of("error", throwable.getMessage())));
                 });
     }
 
@@ -42,9 +43,9 @@ public class Handler {
         return applicationBehavior.getApplicationById(UUID.fromString(serverRequest.pathVariable("id")))
                 .flatMap(s -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(s))
                 .onErrorResume(throwable -> {
-                    LOG.error("get application by id failed", throwable);
+                    LOG.error("get application by id failed, error: {}", throwable.getMessage());
                     return ServerResponse.badRequest().contentType(MediaType.APPLICATION_JSON)
-                            .bodyValue(throwable.getMessage());
+                            .bodyValue(getMap(Pair.of("error", throwable.getMessage())));
                 });
     }
 
@@ -56,9 +57,9 @@ public class Handler {
                 UUID.fromString(serverRequest.pathVariable("organizationId")), pageable)
                 .flatMap(s -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(s))
                 .onErrorResume(throwable -> {
-                    LOG.error("get organization applications call failed", throwable);
+                    LOG.error("get organization applications call failed, error: {}", throwable.getMessage());
                     return ServerResponse.badRequest().contentType(MediaType.APPLICATION_JSON)
-                            .bodyValue(throwable.getMessage());
+                            .bodyValue(getMap(Pair.of("error", throwable.getMessage())));
                 });
     }
 
@@ -74,12 +75,9 @@ public class Handler {
                     }
                 )
                 .onErrorResume(throwable -> {
-                    LOG.error("create failed", throwable);
-                    Map<String, String> map = new HashMap<>();
-                    map.put("error", throwable.getMessage());
-
+                    LOG.error("create failed, error: {}", throwable.getMessage());
                     return ServerResponse.badRequest().contentType(MediaType.APPLICATION_JSON)
-                            .bodyValue(map);
+                            .bodyValue(getMap(Pair.of("error", throwable.getMessage())));
                 });
     }
 
@@ -90,9 +88,9 @@ public class Handler {
         return applicationBehavior.updateApplication(serverRequest.bodyToMono(ApplicationBody.class))
                 .flatMap(s -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(s))
                 .onErrorResume(throwable -> {
-                    LOG.error("update failed", throwable);
+                    LOG.error("update application failed, error: {}", throwable.getMessage());
                     return ServerResponse.badRequest().contentType(MediaType.APPLICATION_JSON)
-                            .bodyValue(throwable.getMessage());
+                            .bodyValue(getMap(Pair.of("error", throwable.getMessage())));
                 });
     }
 
@@ -102,9 +100,9 @@ public class Handler {
         return applicationBehavior.deleteApplication(UUID.fromString(serverRequest.pathVariable("id")))
                 .flatMap(s -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(s))
                 .onErrorResume(throwable -> {
-                    LOG.error("create failed", throwable);
+                    LOG.error("delete application failed, error: {}", throwable.getMessage());
                     return ServerResponse.badRequest().contentType(MediaType.APPLICATION_JSON)
-                            .bodyValue(throwable.getMessage());
+                            .bodyValue(getMap(Pair.of("error", throwable.getMessage())));
                 });
     }
 
@@ -112,11 +110,11 @@ public class Handler {
         LOG.info("add user");
 
         return applicationBehavior.updateApplicationUsers(serverRequest.bodyToFlux(ApplicationUserBody.class))
-                .flatMap(s -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(s))
+                .flatMap(s -> ServerResponse.ok().contentType(MediaType.TEXT_PLAIN).bodyValue(s))
                 .onErrorResume(throwable -> {
-                    LOG.error("create failed", throwable);
-                    return ServerResponse.badRequest().contentType(MediaType.APPLICATION_JSON)
-                            .bodyValue(throwable.getMessage());
+                    LOG.error("update applicationusers failed, error: {}", throwable.getMessage());
+                    return ServerResponse.badRequest().contentType(MediaType.TEXT_PLAIN)
+                            .bodyValue(getMap(Pair.of("error", throwable.getMessage())));
                 });
     }
 
@@ -128,9 +126,9 @@ public class Handler {
         return applicationBehavior.getApplicationUsers(UUID.fromString(serverRequest.pathVariable("id")), pageable)
                 .flatMap(s -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(s))
                 .onErrorResume(throwable -> {
-                    LOG.error("get application user call failed", throwable);
+                    LOG.error("get application user call failed, error: {}", throwable.getMessage());
                     return ServerResponse.badRequest().contentType(MediaType.APPLICATION_JSON)
-                            .bodyValue(throwable.getMessage());
+                            .bodyValue(getMap(Pair.of("error", throwable.getMessage())));
                 });
     }
 
@@ -139,12 +137,21 @@ public class Handler {
 
         return applicationBehavior.getClientRoleGroupNames(serverRequest.pathVariable("clientId"),
                 UUID.fromString(serverRequest.pathVariable("userId")))
-                .flatMap(s -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(s))
+                .flatMap(s -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(s))
                 .onErrorResume(throwable -> {
-                    LOG.error("get role method failed", throwable);
+                    LOG.error("get role method failed, error: {}", throwable.getMessage());
                     return ServerResponse.badRequest().contentType(MediaType.APPLICATION_JSON)
-                            .bodyValue(throwable.getMessage());
+                            .bodyValue(getMap(Pair.of("error", throwable.getMessage())));
                 });
     }
 
+    private Map<String, String> getMap(Pair<String, String>... pairs){
+        Map<String, String> map = new HashMap<>();
+
+        for(Pair<String, String> pair: pairs) {
+            map.put(pair.getFirst(), pair.getSecond());
+        }
+        return map;
+    }
 }

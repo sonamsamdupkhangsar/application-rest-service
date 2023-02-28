@@ -30,9 +30,14 @@ eureka:
     serviceUrl:
       defaultZone: https://${EUREKA_USER}:${EUREKA_PASSWORD}@discovery-service.sonam.cloud/eureka
 
-jwt-rest-service-public-key-id: http://jwt-rest-service-mychart.backend.svc.cluster.local:80/jwts/publickeys/{keyId}
+jwt-rest-service-public-key-id: ${jwt-rest-service-public-key-id}
+jwt-rest-service-accesstoken: ${jwt-rest-service-accesstoken}
 
 
-me.sonam.jwt-validator:
-  permitpath:
-    - path: /api/health/*
+permitpath:
+  - path: /api/health/*
+
+jwtrequest:
+  - in:  /applications
+    out: /jwts/hmackey/(.)*
+    jwt: forward

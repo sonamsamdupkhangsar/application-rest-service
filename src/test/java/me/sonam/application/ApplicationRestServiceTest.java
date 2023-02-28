@@ -13,8 +13,13 @@ import me.sonam.application.handler.model.RoleGroupNames;
 import me.sonam.application.repo.ApplicationRepository;
 import me.sonam.application.repo.ApplicationUserRepository;
 import me.sonam.application.repo.entity.ApplicationUser;
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
 import org.junit.Before;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockitoAnnotations;
@@ -33,12 +38,15 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.reactive.server.EntityExchangeResult;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.function.Consumer;
 
@@ -65,11 +73,32 @@ public class ApplicationRestServiceTest {
 
     @MockBean
     ReactiveJwtDecoder jwtDecoder;
+    final static String clientId = "azudp31223";
+    private static final String hmacKeyEndpoint = "http://localhost:{port}/jwts/hmacKey/"+clientId;
+    private static MockWebServer mockWebServer;
+
 
     @Before
     public void setUp() {
         LOG.info("setup mock");
         MockitoAnnotations.openMocks(this);
+    }
+    @BeforeAll
+    static void setupMockWebServer() throws IOException {
+        mockWebServer = new MockWebServer();
+        mockWebServer.start();
+
+        LOG.info("host: {}, port: {}", mockWebServer.getHostName(), mockWebServer.getPort());
+    }
+    @AfterAll
+    public static void shutdownMockWebServer() throws IOException {
+        LOG.info("shutdown and close mockWebServer");
+        mockWebServer.shutdown();
+        mockWebServer.close();
+    }
+    @DynamicPropertySource
+    static void properties(DynamicPropertyRegistry r) throws IOException {
+        r.add("hmacKeyEndpoint", () -> hmacKeyEndpoint.replace("{port}", mockWebServer.getPort() + ""));
     }
 
     @AfterEach
@@ -79,19 +108,38 @@ public class ApplicationRestServiceTest {
     }
 
     @Test
-    public void createApplication() {
+    public void createApplication() throws InterruptedException {
         final String authenticationId = "sonam";
         Jwt jwt = jwt(authenticationId);
         when(this.jwtDecoder.decode(anyString())).thenReturn(Mono.just(jwt));
 
         LOG.info("create application");
-        UUID clientId = UUID.randomUUID();
+        //UUID clientId = UUID.randomUUID();
+
         UUID creatorUserId = UUID.randomUUID();
         UUID organizationId = UUID.randomUUID();
+
+        final String hmacKeyEndpointResponse = "{\n" +
+                "  \"clientId\": \"azudp31223\",\n" +
+                "  \"hmacMD5Algorithm\": \"HmacSHA256\",\n" +
+                "  \"secretKey\": \"1234secret\"\n" +
+                "}";
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(hmacKeyEndpointResponse));
 
         ApplicationBody applicationBody = new ApplicationBody(null, "Baggy Pants Company",clientId.toString(), creatorUserId, organizationId, ApplicationUser.RoleNamesEnum.user.name(), "");
         EntityExchangeResult<Map> createResult = webTestClient.post().uri("/applications").headers(addJwt(jwt)).bodyValue(applicationBody)
                 .exchange().expectStatus().isCreated().expectBody(Map.class).returnResult();
+
+        LOG.info("result from post application: {}", createResult.getResponseBody());
+        StepVerifier.create(applicationRepository.existsByClientId(applicationBody.getClientId())).assertNext(aBoolean ->
+                {
+                    LOG.info("assert application with clientId exists: {}", aBoolean);
+                    assertThat(aBoolean).isTrue();
+                }).verifyComplete();
+
+
+        RecordedRequest request = mockWebServer.takeRequest();
+        assertThat(request.getMethod()).isEqualTo("POST");
 
         UUID applicationId = UUID.fromString(createResult.getResponseBody().get("id").toString());
         LOG.info("result: {}", createResult.getResponseBody());
@@ -113,10 +161,14 @@ public class ApplicationRestServiceTest {
 
         usersResult.getResponseBody().getContent().forEach(o -> LOG.info("object: {}", o));
 
+        //mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(hmacKeyEndpointResponse));
         LOG.info("trying to send the same payload leads to an error because clientId has already been used");
         webTestClient.post().uri("/applications").headers(addJwt(jwt)).bodyValue(applicationBody)
                 .exchange().expectStatus().is4xxClientError().expectBody(String.class).
                 consumeWith(stringEntityExchangeResult -> LOG.info("response: {}", stringEntityExchangeResult.getResponseBody()));
+
+        //request = mockWebServer.takeRequest();
+        //assertThat(request.getMethod()).isEqualTo("POST");
 
         LOG.info("second call with the same applicationBody should produce the results with ApplicationUser");
         usersResult = webTestClient.get().uri("/applications/"+applicationId+"/users")
@@ -286,9 +338,13 @@ public class ApplicationRestServiceTest {
         LOG.info("got page results for applications by organizations: {}", result);
 
 
+       EntityExchangeResult<Map> mapEntityExchangeResult = webTestClient.get().uri("/applications/clients/"+clientId+"/users/"+userId1)
+                .exchange().expectStatus().isOk().expectBody(Map.class).returnResult();
+       LOG.info("map contains: {}", mapEntityExchangeResult.getResponseBody());
 
+       LOG.info("clientRolegroup with object");
         EntityExchangeResult<RoleGroupNames> clientRoleGroups = webTestClient.get().uri("/applications/clients/"+clientId+"/users/"+userId1)
-                .headers(addJwt(jwt)).exchange().expectStatus().isOk().expectBody(RoleGroupNames.class).returnResult();
+                .exchange().expectStatus().isOk().expectBody(RoleGroupNames.class).returnResult();
 
         LOG.info("roleGroups: {}", clientRoleGroups.getResponseBody());
         marshalToJson(clientRoleGroups.getResponseBody());
@@ -302,7 +358,7 @@ public class ApplicationRestServiceTest {
         assertThat(clientRoleGroups.getResponseBody().getUserRole()).isEqualTo("user");
 
         clientRoleGroups = webTestClient.get().uri("/applications/clients/"+clientId+"/users/"+userId2)
-                .headers(addJwt(jwt)).exchange().expectStatus().isOk().expectBody(RoleGroupNames.class).returnResult();
+                .exchange().expectStatus().isOk().expectBody(RoleGroupNames.class).returnResult();
 
         assertThat(clientRoleGroups.getResponseBody().getGroupNames()).isNull();
         assertThat(clientRoleGroups.getResponseBody().getUserRole()).isEqualTo("user");
@@ -335,6 +391,53 @@ public class ApplicationRestServiceTest {
             LOG.error("failed to marshal to ApplicationUser", e);
             return null;
         }
+    }
+
+    /**
+     * this will ensure application and applicationUser is rolledback when hmac clientId http callout creation
+     * fails.
+     * @throws InterruptedException
+     */
+    @Test
+    public void createApplicationRollbackWhenHmacClientCreationFail() throws InterruptedException {
+        final String authenticationId = "sonam";
+        Jwt jwt = jwt(authenticationId);
+        when(this.jwtDecoder.decode(anyString())).thenReturn(Mono.just(jwt));
+
+        LOG.info("create application");
+
+        UUID creatorUserId = UUID.randomUUID();
+        UUID organizationId = UUID.randomUUID();
+
+        final String hmacKeyEndpointResponse = "{\n" +
+                "  \"clientId\": \"azudp31223\",\n" +
+                "  \"hmacMD5Algorithm\": \"HmacSHA256\",\n" +
+                "  \"secretKey\": \"1234secret\"\n" +
+                "}";
+        mockWebServer.enqueue(new MockResponse().setResponseCode(400).setBody("no response"));
+
+        ApplicationBody applicationBody = new ApplicationBody(null, "Baggy Pants Company", clientId.toString(), creatorUserId, organizationId, ApplicationUser.RoleNamesEnum.user.name(), "");
+        EntityExchangeResult<Map> createResult = webTestClient.post().uri("/applications").headers(addJwt(jwt)).bodyValue(applicationBody)
+                .exchange().expectStatus().isBadRequest().expectBody(Map.class).returnResult();
+
+        LOG.info("result from post application: {}", createResult.getResponseBody());
+        StepVerifier.create(applicationRepository.existsByClientId(applicationBody.getClientId())).assertNext(aBoolean ->
+        {
+            LOG.info("assert application with clientId exists: {}", aBoolean);
+            assertThat(aBoolean).isFalse();
+        }).verifyComplete();
+
+    }
+        @Test
+    public void clientRoleGroupWhenNoClientId() {
+        UUID clientIdNotExist = UUID.randomUUID();
+        UUID userId1 = UUID.randomUUID();
+
+        EntityExchangeResult<Map> mapEntityExchangeResult = webTestClient.get()
+                .uri("/applications/clients/"+clientIdNotExist+"/users/"+userId1)
+                .exchange().expectStatus().isBadRequest().expectBody(Map.class).returnResult();
+        LOG.info("map contains: {}", mapEntityExchangeResult.getResponseBody());
+
     }
 
     private Jwt jwt(String subjectName) {

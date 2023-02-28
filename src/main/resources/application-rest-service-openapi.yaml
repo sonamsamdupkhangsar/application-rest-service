@@ -6,12 +6,13 @@ servers:
   - url: http://localhost:8082
     description: local dev server
 
-security:
-  - bearerAuth: []
+
 paths:
 
   /applications:
     post:
+      security:
+        - bearerAuth: [ ]
       description: create an application
       requestBody:
         required: true
@@ -47,6 +48,8 @@ paths:
 
     put:
       description: update application
+      security:
+        - bearerAuth: [ ]
       requestBody:
         required: true
         content:
@@ -128,6 +131,8 @@ paths:
 
     delete:
       description: delete application
+      security:
+        - bearerAuth: [ ]
       parameters:
         - name: applicationId
           in: path
@@ -185,6 +190,8 @@ paths:
   /applications/users:
     put:
       description: update user association to application items
+      security:
+        - bearerAuth: [ ]
       requestBody:
         required: true
         content:
@@ -195,18 +202,15 @@ paths:
         '200':
           description: updated list of user with application items
           content:
-            application/json:
+            text/plain:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
+                type: string
         '400':
           description: failed to update users with application
           content:
-            application/json:
+            text/plain:
               schema:
-                $ref: '#/components/schemas/BadRequestBody'
+                type: string
   /applications/{id}/users:
     get:
       description: get applicationusers by application id

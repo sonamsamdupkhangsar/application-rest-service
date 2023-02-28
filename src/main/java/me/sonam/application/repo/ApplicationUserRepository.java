@@ -14,5 +14,5 @@ public interface ApplicationUserRepository extends ReactiveCrudRepository<Applic
     Mono<Boolean> existsByApplicationIdAndUserId(UUID applicationId, UUID userId);
     Mono<ApplicationUser> findByApplicationIdAndUserId(UUID applicationId, UUID userId);
     Mono<Integer> deleteByApplicationIdAndUserId(UUID applicationId, UUID userId);
-    Mono<Boolean> deleteByApplicationId(UUID applicationId);
+    Mono<Integer> deleteByApplicationId(UUID applicationId);
 }

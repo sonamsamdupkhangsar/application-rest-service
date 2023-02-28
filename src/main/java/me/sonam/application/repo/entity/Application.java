@@ -3,6 +3,7 @@ package me.sonam.application.repo.entity;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.domain.Persistable;
+import org.springframework.data.relational.core.mapping.Column;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -17,6 +18,7 @@ public class Application implements Persistable<UUID> {
     private String clientId;
     private LocalDateTime created;
     private UUID creatorUserId;
+
     private UUID organizationId;
 
     @Transient
