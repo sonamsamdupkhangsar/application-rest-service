@@ -35,7 +35,7 @@ public class ApplicationAssociation implements ApplicationBehavior {
 
     @Autowired
     private ReactiveRequestContextHolder reactiveRequestContextHolder;
-    @Value("${hmacKeyEndpoint}")
+    @Value("${jwt-service.root}${jwt-service.hmacKey}")
     private String hmacKeyEndpoint;
 
     private WebClient webClient;

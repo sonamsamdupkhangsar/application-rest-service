@@ -15,7 +15,6 @@ management:
       show-details: always
 
 server:
-  #  port: 8080
   port: 9001
 
 spring:
@@ -29,7 +28,11 @@ POSTGRES_DBNAME: dbname
 POSTGRES_SERVICE: dservice
 POSTGRES_PASSWORD: dpassword
 
-jwt-rest-service-public-key-id: http://localhost:{port}/jwts/publickeys/{keyId}
+jwt-service:
+  root: http://localhost:{port}
+  public-key-id: /jwts/publickeys/{keyId}
+  accesstoken: /jwts/accesstoken
+  hmacKey: /jwts/hmackey/
 
 permitpath:
   - path: /api/health/*
@@ -39,5 +42,3 @@ permitpath:
 eureka:
   client:
     enabled: false
-
-hmacKeyEndpoint: http://localhost:8081/jwts/hmacKey/
