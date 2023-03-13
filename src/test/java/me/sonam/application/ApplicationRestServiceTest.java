@@ -98,7 +98,7 @@ public class ApplicationRestServiceTest {
     }
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry r) throws IOException {
-        r.add("hmacKeyEndpoint", () -> hmacKeyEndpoint.replace("{port}", mockWebServer.getPort() + ""));
+        r.add("jwt-service.root", () -> "http://localhost:"+mockWebServer.getPort());
     }
 
     @AfterEach

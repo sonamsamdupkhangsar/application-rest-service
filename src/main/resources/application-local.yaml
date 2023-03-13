@@ -12,17 +12,8 @@ eureka:
   client:
     enabled: false
 
-# jwt-rest-service on port 8081 local server
-jwt-rest-service-public-key-id: http://localhost:8081/jwts/publickeys/{keyId}
-jwt-rest-service-accesstoken: http://localhost:8081/jwts/accesstoken
-hmacKeyEndpoint: http://localhost:8081/jwts/hmackey/
+JWT_REST_SERVICE: http://localhost:8081
 
-hmackeys:
-  - app: '{"clientId":"authentication-rest-service","name":"authentication"}'
-  - app: '{"clientId":"account-rest-service","name":"HmacMD5","secretKey":"mysecret","active":true, "isNew": true}'
-  - app: '{"clientId":"user-rest-service","hmacMD5Algorithm":"HmacMD5","secretKey":"mysecret","active":true, "isNew": true}'
-
-hmackey:
-  clientId: application-rest-service
-  hmacMD5Algorithm: HmacMD5
-  secretKey: mysecret
+HMAC_CLIENTID: application-rest-service
+HMAC_ALGORITHM: HmacMD5
+HMAC_SECRET: mysecret
