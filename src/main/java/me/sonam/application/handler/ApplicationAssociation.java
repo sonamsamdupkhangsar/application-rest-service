@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -38,11 +37,12 @@ public class ApplicationAssociation implements ApplicationBehavior {
     @Value("${jwt-service.root}${jwt-service.hmacKey}")
     private String hmacKeyEndpoint;
 
-    private WebClient webClient;
+    @Autowired
+    private WebClient.Builder webClientBuilder;
 
     @PostConstruct
     public void setWebClient() {
-        webClient = WebClient.builder().filter(reactiveRequestContextHolder.headerFilter()).build();
+        webClientBuilder.filter(reactiveRequestContextHolder.headerFilter());
     }
 
     @Override
@@ -78,7 +78,7 @@ public class ApplicationAssociation implements ApplicationBehavior {
         return saveApplicationAndUser(applicationBodyMono).flatMap(application-> {
             LOG.info("endpoint: {}", hmacKeyEndpoint+application.getClientId());
             LOG.info("create hmacKey for application with clientId: {}", application.getClientId());
-            WebClient.ResponseSpec spec = webClient.post().uri(hmacKeyEndpoint+application.getClientId()).retrieve();
+            WebClient.ResponseSpec spec = webClientBuilder.build().post().uri(hmacKeyEndpoint+application.getClientId()).retrieve();
 
             return spec.bodyToMono(String.class).flatMap(s -> {
                 LOG.info("activation response from jwt-rest-service hmac endpoint is: {}", s);
