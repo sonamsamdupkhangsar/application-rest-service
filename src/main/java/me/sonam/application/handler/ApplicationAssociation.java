@@ -12,9 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Flux;
@@ -23,7 +21,6 @@ import reactor.core.publisher.Mono;
 import javax.annotation.PostConstruct;
 import java.util.UUID;
 
-@Service
 public class ApplicationAssociation implements ApplicationBehavior {
     private static final Logger LOG = LoggerFactory.getLogger(ApplicationAssociation.class);
 
@@ -38,8 +35,11 @@ public class ApplicationAssociation implements ApplicationBehavior {
     @Value("${jwt-service.root}${jwt-service.hmacKey}")
     private String hmacKeyEndpoint;
 
-    @Autowired
     private WebClient.Builder webClientBuilder;
+
+    public ApplicationAssociation(WebClient.Builder webClientBuilder) {
+        this.webClientBuilder = webClientBuilder;
+    }
 
     @PostConstruct
     public void setWebClient() {
