@@ -7,22 +7,17 @@ public class RoleGroupNames {
     private static final Logger LOG = LoggerFactory.getLogger(RoleGroupNames.class);
 
     private String userRole;
-    private String[] groupNames;
+    private String groupNames;
 
     public RoleGroupNames(String userRole, String groupNameCsv) {
         this.userRole = userRole;
-        if (groupNameCsv != null) {
-            groupNameCsv= groupNameCsv.replace(" ", "");
-            this.groupNames = groupNameCsv.split(",");
-            LOG.info("split groupNameCsv: {} into  groupNames: {}", groupNameCsv, this.groupNames);
-        }
+        this.groupNames = groupNameCsv;
     }
 
     public String getUserRole() {
         return this.userRole;
     }
-
-    public String[] getGroupNames() {
-        return groupNames;
+    public String getGroupNames() {
+        return this.groupNames;
     }
 }
